@@ -21,5 +21,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="res\GLSL\Unlit.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\GLSL\Unlit.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
