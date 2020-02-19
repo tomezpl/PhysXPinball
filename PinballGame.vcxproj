@@ -76,10 +76,25 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;PxFoundationDEBUG_$(PlatformTarget).lib;PhysX3DEBUG_$(PlatformTarget).lib;PhysX3ExtensionsDEBUG.lib;PxPvdSDKDEBUG_$(PlatformTarget).lib;PhysX3CommonDEBUG_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(TargetDir)\temp"
+xcopy "$(PHYSX_SDK)\Bin\vc15win32" "$(TargetDir)\temp" /y /c
+xcopy "$(PHYSX_SDK)\..\PxShared\bin\vc15win32" "$(TargetDir)\temp" /y /c
+mkdir "$(TargetDir)\temp\dllFiles\"
+move "$(TargetDir)\temp\*DEBUG*.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\glut32.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\nvToolsExt32_1.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\PhysXDevice.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
+rmdir "$(TargetDir)\temp" /s /q</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -87,10 +102,25 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;PxFoundationDEBUG_$(PlatformTarget).lib;PhysX3DEBUG_$(PlatformTarget).lib;PhysX3ExtensionsDEBUG.lib;PxPvdSDKDEBUG_$(PlatformTarget).lib;PhysX3CommonDEBUG_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(TargetDir)\temp"
+xcopy "$(PHYSX_SDK)\Bin\vc15win64" "$(TargetDir)\temp" /y /c
+xcopy "$(PHYSX_SDK)\..\PxShared\bin\vc15win64" "$(TargetDir)\temp" /y /c
+mkdir "$(TargetDir)\temp\dllFiles\"
+move "$(TargetDir)\temp\*DEBUG*.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\glut32.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\nvToolsExt64_1.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\PhysXDevice64.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
+rmdir "$(TargetDir)\temp" /s /q</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -100,12 +130,26 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;PhysX3Extensions.lib;PxPvdSDK_$(PlatformTarget).lib;PhysX3_$(PlatformTarget).lib;PxFoundation_$(PlatformTarget).lib;PhysX3Common_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(TargetDir)\temp"
+xcopy "$(PHYSX_SDK)\Bin\vc15win32" "$(TargetDir)\temp" /y /c
+xcopy "$(PHYSX_SDK)\..\PxShared\bin\vc15win32" "$(TargetDir)\temp" /y /c
+mkdir "$(TargetDir)\temp\dllFiles\"
+del "$(TargetDir)\temp\*DEBUG*.dll" /q
+del "$(TargetDir)\temp\*CHECKED*.dll" /q
+move "$(TargetDir)\temp\*.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
+rmdir "$(TargetDir)\temp" /s /q</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -115,16 +159,43 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;PhysX3Extensions.lib;PxPvdSDK_$(PlatformTarget).lib;PhysX3_$(PlatformTarget).lib;PxFoundation_$(PlatformTarget).lib;PhysX3Common_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(TargetDir)\temp"
+xcopy "$(PHYSX_SDK)\Bin\vc15win64" "$(TargetDir)\temp" /y /c
+xcopy "$(PHYSX_SDK)\..\PxShared\bin\vc15win64" "$(TargetDir)\temp" /y /c
+mkdir "$(TargetDir)\temp\dllFiles\"
+del "$(TargetDir)\temp\*DEBUG*.dll" /q
+del "$(TargetDir)\temp\*CHECKED*.dll" /q
+move "$(TargetDir)\temp\*.dll" "$(TargetDir)\temp\dllFiles"
+move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
+rmdir "$(TargetDir)\temp" /s /q</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\nupengl.core.redist.0.1.0.1\build\native\nupengl.core.redist.targets" Condition="Exists('packages\nupengl.core.redist.0.1.0.1\build\native\nupengl.core.redist.targets')" />
+    <Import Project="packages\nupengl.core.0.1.0.1\build\native\nupengl.core.targets" Condition="Exists('packages\nupengl.core.0.1.0.1\build\native\nupengl.core.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\nupengl.core.redist.0.1.0.1\build\native\nupengl.core.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\nupengl.core.redist.0.1.0.1\build\native\nupengl.core.redist.targets'))" />
+    <Error Condition="!Exists('packages\nupengl.core.0.1.0.1\build\native\nupengl.core.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\nupengl.core.0.1.0.1\build\native\nupengl.core.targets'))" />
+  </Target>
 </Project>
