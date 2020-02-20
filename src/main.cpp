@@ -9,10 +9,10 @@
 #include <GL/GL.h>
 
 // GL math
-#include <glm/vec3.hpp> // glm::vec3
-#include <glm/vec4.hpp> // glm::vec4
-#include <glm/mat4x4.hpp> // glm::mat4
-#include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
+#include <glm/glm.hpp>
+#include <glm/packing.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 glm::mat4 camera(float Translate, glm::vec2 const& Rotate)
 {
@@ -72,6 +72,57 @@ int main(int* argc, char** argv)
 		0.0f, 0.5f, 1.f // top
 	};
 
+	// Box
+	verts = {
+		// Front wall
+		-1.f, -1.f, 1.f,
+		1.f, -1.f, 1.f,
+		-1.f, 1.f, 1.f,
+		-1.f, 1.f, 1.f,
+		1.f, 1.f, 1.f,
+		1.f, -1.f, 1.f,
+		
+		// Bottom wall
+		-1.f, -1.f, -1.f,
+		-1.f, -1.f, 1.f,
+		1.f, -1.f, 1.f,
+		1.f, -1.f, -1.f,
+		-1.f, -1.f, -1.f,
+		1.f, -1.f, 1.f,
+
+		// Back wall
+		-1.f, -1.f, -1.f,
+		1.f, -1.f, -1.f,
+		-1.f, 1.f, -1.f,
+		-1.f, 1.f, -1.f,
+		1.f, 1.f, -1.f,
+		1.f, -1.f, -1.f,
+
+		// Top wall
+		-1.f, 1.f, -1.f,
+		-1.f, 1.f, 1.f,
+		1.f, 1.f, 1.f,
+		1.f, 1.f, -1.f,
+		-1.f, 1.f, -1.f,
+		1.f, 1.f, 1.f,
+
+		// Left wall
+		-1.f, -1.f, -1.f,
+		-1.f, -1.f, 1.f,
+		-1.f, 1.f, 1.f,
+		-1.f, 1.f, 1.f,
+		-1.f, 1.f, -1.f,
+		-1.f, -1.f, -1.f,
+
+		// Right wall
+		1.f, -1.f, -1.f,
+		1.f, -1.f, 1.f,
+		1.f, 1.f, 1.f,
+		1.f, 1.f, 1.f,
+		1.f, 1.f, -1.f,
+		1.f, -1.f, -1.f,
+	};
+
 	GLuint vbo;
 	GLuint vao;
 	glGenBuffers(1, &vbo);
@@ -124,8 +175,19 @@ int main(int* argc, char** argv)
 		glUseProgram(program);
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glm::mat4 mvp = camera(2.f, glm::vec2(0.f, 5.f));
+		float* mvpMat = new float[4*4];
+		for (int i = 0; i < 4*4; i += 4)
+		{
+			mvpMat[i] = mvp[i / 4].x;
+			mvpMat[i+1] = mvp[i / 4].y;
+			mvpMat[i+2] = mvp[i / 4].z;
+			mvpMat[i+3] = mvp[i / 4].w;
+		}
+		glUniformMatrix4fv(0, 1, false, mvpMat);
 		glDrawArrays(GL_TRIANGLES, 0, verts.size() / 3);
 		glBindVertexArray(0);
+		delete[] mvpMat;
 
 		glfwSwapBuffers(window);
 	}
