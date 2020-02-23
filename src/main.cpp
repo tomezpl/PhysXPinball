@@ -175,7 +175,7 @@ int main(int* argc, char** argv)
 		glUseProgram(program);
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glm::mat4 mvp = camera(2.f, glm::vec2(0.f, 5.f));
+		glm::mat4 mvp = camera(5.f, glm::vec2(0.f, 5.f));
 		float* mvpMat = new float[4*4];
 		for (int i = 0; i < 4*4; i += 4)
 		{
