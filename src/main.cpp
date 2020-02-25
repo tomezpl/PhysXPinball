@@ -14,6 +14,9 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+// Game engine & PhysX
+#include "GameObject.h"
+
 glm::mat4 camera(float Translate, glm::vec2 const& Rotate)
 {
 	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
@@ -22,6 +25,19 @@ glm::mat4 camera(float Translate, glm::vec2 const& Rotate)
 	View = glm::rotate(View, Rotate.x, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 	return Projection * View * Model;
+}
+
+glm::mat4 transformMatrix(glm::vec3 camPos, Pinball::GameObject object)
+{
+	glm::mat4 proj = glm::perspective(glm::radians(60.f), 16.f / 9.f, 0.1f, 100.f);
+	glm::mat4 view = glm::translate(glm::mat4(1.f), -camPos);
+	// Model matrix doesn't take into account rotations relative to an anchor point/parent transform
+	physx::PxTransform pose = ((physx::PxRigidActor*)object.GetPxActor())->getGlobalPose();
+	glm::mat4 model = glm::rotate(glm::mat4(1.f), pose.q.w, glm::vec3(pose.q.x, pose.q.y, pose.q.z));
+	model = glm::translate(model, glm::vec3(pose.p.x, pose.p.y, pose.p.z));
+	model = glm::scale(model, glm::vec3(1.f));
+
+	return proj * view * model;
 }
 
 // Utility: returns contents of a file as text. Used to get shader sources.
@@ -123,6 +139,16 @@ int main(int* argc, char** argv)
 		1.f, -1.f, -1.f,
 	};
 
+	// PhysX
+	physx::PxDefaultAllocator pxAlloc;
+	physx::PxDefaultErrorCallback pxErrClb;
+	physx::PxFoundation* pxFoundation = PxCreateFoundation(PX_FOUNDATION_VERSION, pxAlloc, pxErrClb);
+	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale());
+	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), physx::PxCookingParams(physx::PxTolerancesScale()));
+
+	Pinball::Mesh boxMesh = Pinball::Mesh::createBox(cooking);
+	Pinball::GameObject boxObj(boxMesh);
+
 	GLuint vbo;
 	GLuint vao;
 	glGenBuffers(1, &vbo);
@@ -130,9 +156,10 @@ int main(int* argc, char** argv)
 
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(float), verts.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, boxObj.Geometry().GetCount() * 3 * sizeof(float), boxObj.Geometry().GetData(), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
 	glEnableVertexAttribArray(0);
+	//glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(float), verts.data(), GL_STATIC_DRAW);
 	glBindVertexArray(0);
 
 	// Shaders
@@ -158,6 +185,9 @@ int main(int* argc, char** argv)
 
 	//glBindAttribLocation(program, 0, "position");
 
+	double deltaTime = 0.0;
+	double elapsedTime = glfwGetTime();
+
 	while (running)
 	{
 		// Process events
@@ -166,6 +196,11 @@ int main(int* argc, char** argv)
 		{
 			running = false;
 		}
+
+		// Process logic, prepare scene
+		double prevElapsedTime = elapsedTime;
+		elapsedTime = glfwGetTime();
+		deltaTime = elapsedTime - prevElapsedTime;
 
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);

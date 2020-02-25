@@ -77,11 +77,12 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>NotSet</SubSystem>
       <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;PxFoundationDEBUG_$(PlatformTarget).lib;PhysX3DEBUG_$(PlatformTarget).lib;PhysX3ExtensionsDEBUG.lib;PxPvdSDKDEBUG_$(PlatformTarget).lib;PhysX3CommonDEBUG_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;PxFoundationDEBUG_$(PlatformTarget).lib;PhysX3DEBUG_$(PlatformTarget).lib;PhysX3ExtensionsDEBUG.lib;PxPvdSDKDEBUG_$(PlatformTarget).lib;PhysX3CommonDEBUG_$(PlatformTarget).lib;PhysX3CookingDEBUG_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)\temp"
@@ -109,11 +110,12 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>NotSet</SubSystem>
       <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;PxFoundationDEBUG_$(PlatformTarget).lib;PhysX3DEBUG_$(PlatformTarget).lib;PhysX3ExtensionsDEBUG.lib;PxPvdSDKDEBUG_$(PlatformTarget).lib;PhysX3CommonDEBUG_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;PxFoundationDEBUG_$(PlatformTarget).lib;PhysX3DEBUG_$(PlatformTarget).lib;PhysX3ExtensionsDEBUG.lib;PxPvdSDKDEBUG_$(PlatformTarget).lib;PhysX3CommonDEBUG_$(PlatformTarget).lib;PhysX3CookingDEBUG_$(PlatformTarget).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)\temp"
@@ -143,9 +145,10 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>NotSet</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -178,9 +181,10 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>NotSet</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(PHYSX_SDK)\Lib\vc15win$(PlatformArchitecture);$(PHYSX_SDK)\..\PxShared\Lib\vc15win$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -206,12 +210,20 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Mesh.cpp" />
+    <ClCompile Include="src\Vertex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="res\GLSL\Unlit.frag" />
     <None Include="res\GLSL\Unlit.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\GameObject.h" />
+    <ClInclude Include="src\Mesh.h" />
+    <ClInclude Include="src\Vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
