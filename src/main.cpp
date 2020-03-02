@@ -57,6 +57,31 @@ std::string getFileContents(std::string path)
 	return ret;
 }
 
+// OpenGL resources
+GLuint gVBO;
+GLuint gVAO;
+GLuint gGLProgram;
+
+void drawMesh(Pinball::Mesh& mesh)
+{
+	glBindVertexArray(gVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, gVBO);
+	glm::mat4 mvp = camera(5.f, glm::vec2(0.f, 5.f));
+	float* mvpMat = new float[4 * 4];
+	for (int i = 0; i < 4 * 4; i += 4)
+	{
+		mvpMat[i] = mvp[i / 4].x;
+		mvpMat[i + 1] = mvp[i / 4].y;
+		mvpMat[i + 2] = mvp[i / 4].z;
+		mvpMat[i + 3] = mvp[i / 4].w;
+	}
+	glUniformMatrix4fv(glGetUniformLocation(gGLProgram, "_MVP"), 1, false, mvpMat);
+	glUniform3fv(glGetUniformLocation(gGLProgram, "_Color"), 1, mesh.Color());
+	glDrawArrays(GL_TRIANGLES, 0, mesh.GetCount());
+	glBindVertexArray(0);
+	delete[] mvpMat;
+}
+
 int main(int* argc, char** argv)
 {
 	// GLFW initialisiation
@@ -99,13 +124,11 @@ int main(int* argc, char** argv)
 	boxMesh.Color(0.0f, 1.0f, 0.0f);
 	Pinball::GameObject boxObj(boxMesh);
 
-	GLuint vbo;
-	GLuint vao;
-	glGenBuffers(1, &vbo);
-	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &gVBO);
+	glGenVertexArrays(1, &gVAO);
 
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindVertexArray(gVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, gVBO);
 	glBufferData(GL_ARRAY_BUFFER, boxObj.Geometry().GetCount() * 3 * sizeof(float), boxObj.Geometry().GetData(), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
 	glEnableVertexAttribArray(0);
@@ -125,13 +148,12 @@ int main(int* argc, char** argv)
 	int fragShaderLength = fragShaderSrc.length();
 	glShaderSource(fragShader, 1, &fragShaderCStr, &fragShaderLength);
 
-	GLuint program;
-	program = glCreateProgram();
-	glAttachShader(program, vertShader);
-	glAttachShader(program, fragShader);
+	gGLProgram = glCreateProgram();
+	glAttachShader(gGLProgram, vertShader);
+	glAttachShader(gGLProgram, fragShader);
 	glCompileShader(vertShader);
 	glCompileShader(fragShader);
-	glLinkProgram(program);
+	glLinkProgram(gGLProgram);
 
 	//glBindAttribLocation(program, 0, "position");
 
@@ -157,23 +179,8 @@ int main(int* argc, char** argv)
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glPointSize(10.0f);
-		glUseProgram(program);
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glm::mat4 mvp = camera(5.f, glm::vec2(0.f, 5.f));
-		float* mvpMat = new float[4*4];
-		for (int i = 0; i < 4*4; i += 4)
-		{
-			mvpMat[i] = mvp[i / 4].x;
-			mvpMat[i+1] = mvp[i / 4].y;
-			mvpMat[i+2] = mvp[i / 4].z;
-			mvpMat[i+3] = mvp[i / 4].w;
-		}
-		glUniformMatrix4fv(glGetUniformLocation(program, "_MVP"), 1, false, mvpMat);
-		glUniform3fv(glGetUniformLocation(program, "_Color"), 1, boxMesh.Color());
-		glDrawArrays(GL_TRIANGLES, 0, boxMesh.GetCount());
-		glBindVertexArray(0);
-		delete[] mvpMat;
+		glUseProgram(gGLProgram);
+		drawMesh(boxMesh);
 
 		glfwSwapBuffers(window);
 	}
