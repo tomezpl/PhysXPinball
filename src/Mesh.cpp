@@ -6,11 +6,25 @@ using namespace Pinball;
 Mesh::Mesh()
 {
 	mPxGeometry = nullptr;
+	mColor = new float[3]{ 0.0f, 0.0f, 0.0f };
 }
 
 Pinball::Mesh::Mesh(std::vector<Vertex> vertices, physx::PxCooking* cooking)
 {
+	mColor = new float[3]{ 0.0f, 0.0f, 0.0f };
 	SetVertices(vertices, cooking);
+}
+
+void Pinball::Mesh::Color(float r, float g, float b)
+{
+	mColor[0] = r;
+	mColor[1] = g;
+	mColor[2] = b;
+}
+
+float* Pinball::Mesh::Color()
+{
+	return mColor;
 }
 
 Mesh Pinball::Mesh::createBox(physx::PxCooking* cooking, float size)
@@ -70,6 +84,22 @@ Mesh Pinball::Mesh::createBox(physx::PxCooking* cooking, float size)
 	return ret;
 }
 
+Mesh Pinball::Mesh::createPlane(physx::PxCooking* cooking, float size)
+{
+	Mesh ret;
+
+	ret.SetVertices({
+		Vertex(-1.f, 0.f, -1.f, -1.f, 1.f, -1.f),
+		Vertex(-1.f, 0.f, 1.f, -1.f, 1.f, 1.f),
+		Vertex(1.f, 0.f, 1.f, 1.f, 1.f, 1.f),
+		Vertex(1.f, 0.f, -1.f, 1.f, 1.f, -1.f),
+		Vertex(-1.f, 0.f, -1.f, -1.f, 1.f, -1.f),
+		Vertex(1.f, 0.f, 1.f, 1.f, 1.f, 1.f),
+		}, cooking);
+
+	return ret;
+}
+
 size_t Mesh::GetCount()
 {
 	return mVertices.size();
@@ -100,6 +130,7 @@ float* Mesh::GetData()
 	return ret;
 }
 
+// Assigns the vertex buffer and creates a convex PhysX mesh
 void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking)
 {
 	// TODO: shouldn't I delete each vertex first? they contain raw pointers

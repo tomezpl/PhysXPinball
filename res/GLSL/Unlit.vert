@@ -2,9 +2,9 @@
 
 layout(location =0) in vec3 position;
 
-uniform mat4 mvp;
+uniform mat4 _MVP;
 
 void main()
 {
-	gl_Position = mvp * vec4(position, 1.0f);
+	gl_Position = _MVP * vec4(position, 1.0f);
 }

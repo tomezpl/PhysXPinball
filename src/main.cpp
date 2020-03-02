@@ -81,62 +81,11 @@ int main(int* argc, char** argv)
 	glViewport(0, 0, 1280, 720);
 	bool running = true;
 
-	// Vertices
+	// Vertices for a triangle
 	std::vector<float> verts = {
 		-0.5f, -0.5f, 1.f, // bottom-left
 		0.5f, -0.5f, 1.f, // bottom-right
 		0.0f, 0.5f, 1.f // top
-	};
-
-	// Box
-	verts = {
-		// Front wall
-		-1.f, -1.f, 1.f,
-		1.f, -1.f, 1.f,
-		-1.f, 1.f, 1.f,
-		-1.f, 1.f, 1.f,
-		1.f, 1.f, 1.f,
-		1.f, -1.f, 1.f,
-		
-		// Bottom wall
-		-1.f, -1.f, -1.f,
-		-1.f, -1.f, 1.f,
-		1.f, -1.f, 1.f,
-		1.f, -1.f, -1.f,
-		-1.f, -1.f, -1.f,
-		1.f, -1.f, 1.f,
-
-		// Back wall
-		-1.f, -1.f, -1.f,
-		1.f, -1.f, -1.f,
-		-1.f, 1.f, -1.f,
-		-1.f, 1.f, -1.f,
-		1.f, 1.f, -1.f,
-		1.f, -1.f, -1.f,
-
-		// Top wall
-		-1.f, 1.f, -1.f,
-		-1.f, 1.f, 1.f,
-		1.f, 1.f, 1.f,
-		1.f, 1.f, -1.f,
-		-1.f, 1.f, -1.f,
-		1.f, 1.f, 1.f,
-
-		// Left wall
-		-1.f, -1.f, -1.f,
-		-1.f, -1.f, 1.f,
-		-1.f, 1.f, 1.f,
-		-1.f, 1.f, 1.f,
-		-1.f, 1.f, -1.f,
-		-1.f, -1.f, -1.f,
-
-		// Right wall
-		1.f, -1.f, -1.f,
-		1.f, -1.f, 1.f,
-		1.f, 1.f, 1.f,
-		1.f, 1.f, 1.f,
-		1.f, 1.f, -1.f,
-		1.f, -1.f, -1.f,
 	};
 
 	// PhysX
@@ -147,6 +96,7 @@ int main(int* argc, char** argv)
 	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), physx::PxCookingParams(physx::PxTolerancesScale()));
 
 	Pinball::Mesh boxMesh = Pinball::Mesh::createBox(cooking);
+	boxMesh.Color(0.0f, 1.0f, 0.0f);
 	Pinball::GameObject boxObj(boxMesh);
 
 	GLuint vbo;
@@ -219,8 +169,9 @@ int main(int* argc, char** argv)
 			mvpMat[i+2] = mvp[i / 4].z;
 			mvpMat[i+3] = mvp[i / 4].w;
 		}
-		glUniformMatrix4fv(0, 1, false, mvpMat);
-		glDrawArrays(GL_TRIANGLES, 0, verts.size() / 3);
+		glUniformMatrix4fv(glGetUniformLocation(program, "_MVP"), 1, false, mvpMat);
+		glUniform3fv(glGetUniformLocation(program, "_Color"), 1, boxMesh.Color());
+		glDrawArrays(GL_TRIANGLES, 0, boxMesh.GetCount());
 		glBindVertexArray(0);
 		delete[] mvpMat;
 
