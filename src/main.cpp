@@ -13,32 +13,10 @@
 #include <glm/packing.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 // Game engine & PhysX
 #include "GameObject.h"
-
-glm::mat4 camera(float Translate, glm::vec2 const& Rotate)
-{
-	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
-	glm::mat4 View = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -Translate));
-	View = glm::rotate(View, Rotate.y, glm::vec3(-1.0f, 0.0f, 0.0f));
-	View = glm::rotate(View, Rotate.x, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 Model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-	return Projection * View * Model;
-}
-
-glm::mat4 transformMatrix(glm::vec3 camPos, Pinball::GameObject object)
-{
-	glm::mat4 proj = glm::perspective(glm::radians(60.f), 16.f / 9.f, 0.1f, 100.f);
-	glm::mat4 view = glm::translate(glm::mat4(1.f), -camPos);
-	// Model matrix doesn't take into account rotations relative to an anchor point/parent transform
-	physx::PxTransform pose = ((physx::PxRigidActor*)object.GetPxActor())->getGlobalPose();
-	glm::mat4 model = glm::rotate(glm::mat4(1.f), pose.q.w, glm::vec3(pose.q.x, pose.q.y, pose.q.z));
-	model = glm::translate(model, glm::vec3(pose.p.x, pose.p.y, pose.p.z));
-	model = glm::scale(model, glm::vec3(1.f));
-
-	return proj * view * model;
-}
 
 // Utility: returns contents of a file as text. Used to get shader sources.
 std::string getFileContents(std::string path)
@@ -62,22 +40,42 @@ GLuint gVBO;
 GLuint gVAO;
 GLuint gGLProgram;
 
-void drawMesh(Pinball::Mesh& mesh)
+glm::mat4 getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec2 viewport)
+{
+	physx::PxTransform worldTransform = obj.Transform();
+	glm::vec3 modelPos = glm::vec3(worldTransform.p.x, worldTransform.p.y, worldTransform.p.z);
+	glm::quat modelRot(worldTransform.q.w, worldTransform.q.x, worldTransform.q.y, worldTransform.q.z);
+	glm::mat4 model = glm::translate(glm::mat4(1.0f), modelPos);
+	model *= glm::mat4_cast(modelRot);
+	model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f)); // TODO: no scaling for now
+
+	glm::mat4 view = glm::translate(glm::mat4(1.0f), camPos * -1.0f);
+	
+	glm::mat4 proj = glm::perspective(glm::radians(60.0f), viewport.x / viewport.y, 0.01f, 1000.0f);
+
+	return proj * view * model;
+}
+
+void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport)
 {
 	glBindVertexArray(gVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-	glm::mat4 mvp = camera(5.f, glm::vec2(0.f, 5.f));
+	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), obj.Geometry().GetData(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	glm::mat4 mvp = getTransform(obj, glm::vec3(0.0f, 0.0f, 5.0f), viewport);
 	float* mvpMat = new float[4 * 4];
 	for (int i = 0; i < 4 * 4; i += 4)
 	{
+		// TODO: could just memcpy this
 		mvpMat[i] = mvp[i / 4].x;
 		mvpMat[i + 1] = mvp[i / 4].y;
 		mvpMat[i + 2] = mvp[i / 4].z;
 		mvpMat[i + 3] = mvp[i / 4].w;
 	}
 	glUniformMatrix4fv(glGetUniformLocation(gGLProgram, "_MVP"), 1, false, mvpMat);
-	glUniform3fv(glGetUniformLocation(gGLProgram, "_Color"), 1, mesh.Color());
-	glDrawArrays(GL_TRIANGLES, 0, mesh.GetCount());
+	glUniform3fv(glGetUniformLocation(gGLProgram, "_Color"), 1, obj.Geometry().Color());
+	glDrawArrays(GL_TRIANGLES, 0, obj.Geometry().GetCount());
 	glBindVertexArray(0);
 	delete[] mvpMat;
 }
@@ -106,6 +104,12 @@ int main(int* argc, char** argv)
 	glViewport(0, 0, 1280, 720);
 	bool running = true;
 
+	// Z-testing
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	glDepthFunc(GL_LEQUAL);
+	glDepthRange(0.0f, 1.0f);
+
 	// Vertices for a triangle
 	std::vector<float> verts = {
 		-0.5f, -0.5f, 1.f, // bottom-left
@@ -120,20 +124,28 @@ int main(int* argc, char** argv)
 	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale());
 	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), physx::PxCookingParams(physx::PxTolerancesScale()));
 
+	physx::PxSceneDesc sceneDesc = physx::PxSceneDesc(physx::PxTolerancesScale());
+	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
+	sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
+	physx::PxScene* scene = PxGetPhysics().createScene(sceneDesc);
+
 	Pinball::Mesh boxMesh = Pinball::Mesh::createBox(cooking);
 	boxMesh.Color(0.0f, 1.0f, 0.0f);
 	Pinball::GameObject boxObj(boxMesh);
+	boxObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, 3.0f, -5.0f), physx::PxQuat(physx::PxIdentity)));
+
+	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking, 10.0f);
+	Pinball::GameObject planeObj(planeMesh, Pinball::GameObject::Type::Static);
+
+	scene->addActor(*boxObj.GetPxActor());
+	scene->addActor(*planeObj.GetPxActor());
+
+	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
+	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, -5.0f), physx::PxQuat(physx::PxIdentity)));
 
 	glGenBuffers(1, &gVBO);
 	glGenVertexArrays(1, &gVAO);
-
-	glBindVertexArray(gVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-	glBufferData(GL_ARRAY_BUFFER, boxObj.Geometry().GetCount() * 3 * sizeof(float), boxObj.Geometry().GetData(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-	//glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(float), verts.data(), GL_STATIC_DRAW);
-	glBindVertexArray(0);
 
 	// Shaders
 	GLuint vertShader, fragShader;
@@ -155,8 +167,6 @@ int main(int* argc, char** argv)
 	glCompileShader(fragShader);
 	glLinkProgram(gGLProgram);
 
-	//glBindAttribLocation(program, 0, "position");
-
 	double deltaTime = 0.0;
 	double elapsedTime = glfwGetTime();
 
@@ -174,18 +184,27 @@ int main(int* argc, char** argv)
 		elapsedTime = glfwGetTime();
 		deltaTime = elapsedTime - prevElapsedTime;
 
+		// Simulate physics
+		scene->simulate(deltaTime);
+		scene->fetchResults(true);
+
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glPointSize(10.0f);
 		glUseProgram(gGLProgram);
-		drawMesh(boxMesh);
+		int vWidth = 0, vHeight = 0;
+		glfwGetWindowSize(window, &vWidth, &vHeight);
+		drawMesh(boxObj, glm::vec2(vWidth, vHeight));
+		drawMesh(planeObj, glm::vec2(vWidth, vHeight));
 
 		glfwSwapBuffers(window);
 	}
 
 	glfwDestroyWindow(window);
+
+	scene->release();
 
 	return 0;
 }
