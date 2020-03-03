@@ -7,14 +7,15 @@ namespace Pinball {
 	private:
 		Mesh mMesh;
 
-		// TODO: write a transform getter/setter
-		physx::PxTransform mTransform;
 		physx::PxActor* mActor;
 	public:
+		enum Type { Dynamic = 0, Static };
 		GameObject();
-		GameObject(Mesh geometry);
+		GameObject(Mesh geometry, Type actorType = Type::Dynamic);
 		Mesh Geometry();
-		void Geometry(Mesh mesh);
+		void Geometry(Mesh mesh, Type actorType = Type::Dynamic);
 		physx::PxActor* GetPxActor();
+		physx::PxTransform Transform();
+		void Transform(physx::PxTransform transform);
 	};
 }
