@@ -87,14 +87,15 @@ Mesh Pinball::Mesh::createBox(physx::PxCooking* cooking, float size)
 Mesh Pinball::Mesh::createPlane(physx::PxCooking* cooking, float size)
 {
 	Mesh ret;
+	float halfSize = size / 2.0f;
 
 	ret.SetVertices({
-		Vertex(-1.f, 0.f, -1.f, -1.f, 1.f, -1.f),
-		Vertex(-1.f, 0.f, 1.f, -1.f, 1.f, 1.f),
-		Vertex(1.f, 0.f, 1.f, 1.f, 1.f, 1.f),
-		Vertex(1.f, 0.f, -1.f, 1.f, 1.f, -1.f),
-		Vertex(-1.f, 0.f, -1.f, -1.f, 1.f, -1.f),
-		Vertex(1.f, 0.f, 1.f, 1.f, 1.f, 1.f),
+		Vertex(-halfSize, 0.f, -halfSize, -halfSize, 1.f, -halfSize),
+		Vertex(-halfSize, 0.f, halfSize, -halfSize, 1.f, halfSize),
+		Vertex(halfSize, 0.f, halfSize, halfSize, 1.f, halfSize),
+		Vertex(halfSize, 0.f, -halfSize, halfSize, 1.f, -halfSize),
+		Vertex(-halfSize, 0.f, -halfSize, -halfSize, 1.f, -halfSize),
+		Vertex(halfSize, 0.f, halfSize, halfSize, 1.f, halfSize)
 		}, cooking);
 
 	return ret;
@@ -143,7 +144,7 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking)
 	meshDesc.points.stride = sizeof(float) * 3;
 
 	meshDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX;
-	meshDesc.vertexLimit = GetCount();
+	//meshDesc.vertexLimit = GetCount();
 
 	physx::PxDefaultMemoryOutputStream buf;
 	if (cooking->cookConvexMesh(meshDesc, buf))
