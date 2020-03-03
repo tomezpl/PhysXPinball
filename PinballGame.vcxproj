@@ -223,6 +223,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
   <ItemGroup>
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Mesh.h" />
+    <ClInclude Include="src\Middleware.h" />
     <ClInclude Include="src\Vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

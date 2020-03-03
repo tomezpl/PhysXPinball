@@ -2,6 +2,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <iostream>
 
 // OpenGL includes
 #include <GL/glew.h>
@@ -17,6 +18,7 @@
 
 // Game engine & PhysX
 #include "GameObject.h"
+#include "Middleware.h"
 
 // Utility: returns contents of a file as text. Used to get shader sources.
 std::string getFileContents(std::string path)
@@ -80,6 +82,72 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport)
 	delete[] mvpMat;
 }
 
+///A customised collision class, implemneting various callbacks
+class MySimulationEventCallback : public physx::PxSimulationEventCallback
+{
+public:
+	//an example variable that will be checked in the main simulation loop
+	bool trigger;
+
+	MySimulationEventCallback() : trigger(false) {}
+
+	///Method called when the contact with the trigger object is detected.
+	virtual void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count)
+	{
+		//you can read the trigger information here
+		for (physx::PxU32 i = 0; i < count; i++)
+		{
+			//filter out contact with non-triggers
+			if (static_cast<Pinball::Middleware::UserData*>(pairs[i].otherActor->userData)->isTrigger)
+			{
+				//check if eNOTIFY_TOUCH_FOUND trigger
+				if (pairs[i].status & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
+				{
+					std::cerr << "onTrigger::eNOTIFY_TOUCH_FOUND" << std::endl;
+					trigger = true;
+				}
+				//check if eNOTIFY_TOUCH_LOST trigger
+				if (pairs[i].status & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
+				{
+					std::cerr << "onTrigger::eNOTIFY_TOUCH_LOST" << std::endl;
+					trigger = false;
+				}
+			}
+		}
+	}
+
+	///Method called when the contact by the filter shader is detected.
+	virtual void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
+	{
+		std::cerr << "Contact found between " << pairHeader.actors[0]->getName() << " " << pairHeader.actors[1]->getName() << std::endl;
+
+		//check all pairs
+		for (physx::PxU32 i = 0; i < nbPairs; i++)
+		{
+			if (static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[0]->getActor()->userData)->isCollider && static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[1]->getActor()->userData)->isCollider)
+			{
+				//check eNOTIFY_TOUCH_FOUND
+				if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
+				{
+					std::cerr << "onContact::eNOTIFY_TOUCH_FOUND" << std::endl;
+				}
+				//check eNOTIFY_TOUCH_LOST
+				if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
+				{
+					std::cerr << "onContact::eNOTIFY_TOUCH_LOST" << std::endl;
+				}
+			}
+		}
+	}
+
+	virtual void onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) {}
+	virtual void onWake(physx::PxActor** actors, physx::PxU32 count) {}
+	virtual void onSleep(physx::PxActor** actors, physx::PxU32 count) {}
+#if PX_PHYSICS_VERSION >= 0x304000
+	virtual void onAdvance(const physx::PxRigidBody * const* bodyBuffer, const physx::PxTransform * poseBuffer, const physx::PxU32 count) {}
+#endif
+};
+
 int main(int* argc, char** argv)
 {
 	// GLFW initialisiation
@@ -129,11 +197,12 @@ int main(int* argc, char** argv)
 	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
 	sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
 	physx::PxScene* scene = PxGetPhysics().createScene(sceneDesc);
+	scene->setSimulationEventCallback(new MySimulationEventCallback());
 
 	Pinball::Mesh boxMesh = Pinball::Mesh::createBox(cooking);
 	boxMesh.Color(0.0f, 1.0f, 0.0f);
 	Pinball::GameObject boxObj(boxMesh);
-	boxObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, 3.0f, -5.0f), physx::PxQuat(physx::PxIdentity)));
+	boxObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, 3.0f, -5.f), physx::PxQuat(physx::PxIdentity)));
 
 	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking, 10.0f);
 	Pinball::GameObject planeObj(planeMesh, Pinball::GameObject::Type::Static);
@@ -142,7 +211,7 @@ int main(int* argc, char** argv)
 	scene->addActor(*planeObj.GetPxActor());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
-	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, -5.0f), physx::PxQuat(physx::PxIdentity)));
+	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
 
 	glGenBuffers(1, &gVBO);
 	glGenVertexArrays(1, &gVAO);

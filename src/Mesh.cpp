@@ -30,55 +30,56 @@ float* Pinball::Mesh::Color()
 Mesh Pinball::Mesh::createBox(physx::PxCooking* cooking, float size)
 {
 	Mesh ret;
+	float halfSize = size / 2.0f;
 
 	ret.SetVertices({
 		// Front wall
-		Vertex(-1.f, -1.f, 1.f, -1.f, -1.f, 1.f),
-		Vertex(1.f, -1.f, 1.f, 1.f, -1.f, 1.f),
-		Vertex(-1.f, 1.f, 1.f, -1.f, 1.f, 1.f),
-		Vertex(-1.f, 1.f, 1.f, -1.f, 1.f, 1.f),
-		Vertex(1.f, 1.f, 1.f, 1.f, 1.f, 1.f),
-		Vertex(1.f, -1.f, 1.f, 1.f, -1.f, 1.f),
+		Vertex(-halfSize, -halfSize, halfSize, -halfSize, -halfSize, halfSize),
+		Vertex(halfSize, -halfSize, halfSize, halfSize, -halfSize, halfSize),
+		Vertex(-halfSize, halfSize, halfSize, -halfSize, halfSize, halfSize),
+		Vertex(-halfSize, halfSize, halfSize, -halfSize, halfSize, halfSize),
+		Vertex(halfSize, halfSize, halfSize, halfSize, halfSize, halfSize),
+		Vertex(halfSize, -halfSize, halfSize, halfSize, -halfSize, halfSize),
 
 		// Bottom wall
-		Vertex(-1.f, -1.f, -1.f, -1.f, -1.f, -1.f),
-		Vertex(-1.f, -1.f, 1.f, -1.f, -1.f, 1.f),
-		Vertex(1.f, -1.f, 1.f, 1.f, -1.f, 1.f),
-		Vertex(1.f, -1.f, -1.f, 1.f, -1.f, -1.f),
-		Vertex(-1.f, -1.f, -1.f, -1.f, -1.f, -1.f),
-		Vertex(1.f, -1.f, 1.f, 1.f, -1.f, 1.f),
+		Vertex(-halfSize, -halfSize, -halfSize, -halfSize, -halfSize, -halfSize),
+		Vertex(-halfSize, -halfSize, halfSize, -halfSize, -halfSize, halfSize),
+		Vertex(halfSize, -halfSize, halfSize, halfSize, -halfSize, halfSize),
+		Vertex(halfSize, -halfSize, -halfSize, halfSize, -halfSize, -halfSize),
+		Vertex(-halfSize, -halfSize, -halfSize, -halfSize, -halfSize, -halfSize),
+		Vertex(halfSize, -halfSize, halfSize, halfSize, -halfSize, halfSize),
 
 		// Back wall
-		Vertex(-1.f, -1.f, -1.f, -1.f, -1.f, -1.f),
-		Vertex(1.f, -1.f, -1.f, 1.f, -1.f, -1.f),
-		Vertex(-1.f, 1.f, -1.f, -1.f, 1.f, -1.f),
-		Vertex(-1.f, 1.f, -1.f, -1.f, 1.f, -1.f),
-		Vertex(1.f, 1.f, -1.f, 1.f, 1.f, -1.f),
-		Vertex(1.f, -1.f, -1.f, 1.f, -1.f, -1.f),
+		Vertex(-halfSize, -halfSize, -halfSize, -halfSize, -halfSize, -halfSize),
+		Vertex(halfSize, -halfSize, -halfSize, halfSize, -halfSize, -halfSize),
+		Vertex(-halfSize, halfSize, -halfSize, -halfSize, halfSize, -halfSize),
+		Vertex(-halfSize, halfSize, -halfSize, -halfSize, halfSize, -halfSize),
+		Vertex(halfSize, halfSize, -halfSize, halfSize, halfSize, -halfSize),
+		Vertex(halfSize, -halfSize, -halfSize, halfSize, -halfSize, -halfSize),
 
 		// Top wall
-		Vertex(-1.f, 1.f, -1.f, -1.f, 1.f, -1.f),
-		Vertex(-1.f, 1.f, 1.f, -1.f, 1.f, 1.f),
-		Vertex(1.f, 1.f, 1.f, 1.f, 1.f, 1.f),
-		Vertex(1.f, 1.f, -1.f, 1.f, 1.f, -1.f),
-		Vertex(-1.f, 1.f, -1.f, -1.f, 1.f, -1.f),
-		Vertex(1.f, 1.f, 1.f, 1.f, 1.f, 1.f),
+		Vertex(-halfSize, halfSize, -halfSize, -halfSize, halfSize, -halfSize),
+		Vertex(-halfSize, halfSize, halfSize, -halfSize, halfSize, halfSize),
+		Vertex(halfSize, halfSize, halfSize, halfSize, halfSize, halfSize),
+		Vertex(halfSize, halfSize, -halfSize, halfSize, halfSize, -halfSize),
+		Vertex(-halfSize, halfSize, -halfSize, -halfSize, halfSize, -halfSize),
+		Vertex(halfSize, halfSize, halfSize, halfSize, halfSize, halfSize),
 
 		// Left wall
-		Vertex(-1.f, -1.f, -1.f, -1.f, -1.f, -1.f),
-		Vertex(-1.f, -1.f, 1.f, -1.f, -1.f, 1.f),
-		Vertex(-1.f, 1.f, 1.f, -1.f, 1.f, 1.f),
-		Vertex(-1.f, 1.f, 1.f, -1.f, 1.f, 1.f),
-		Vertex(-1.f, 1.f, -1.f, -1.f, 1.f, -1.f),
-		Vertex(-1.f, -1.f, -1.f, -1.f, -1.f, -1.f),
+		Vertex(-halfSize, -halfSize, -halfSize, -halfSize, -halfSize, -halfSize),
+		Vertex(-halfSize, -halfSize, halfSize, -halfSize, -halfSize, halfSize),
+		Vertex(-halfSize, halfSize, halfSize, -halfSize, halfSize, halfSize),
+		Vertex(-halfSize, halfSize, halfSize, -halfSize, halfSize, halfSize),
+		Vertex(-halfSize, halfSize, -halfSize, -halfSize, halfSize, -halfSize),
+		Vertex(-halfSize, -halfSize, -halfSize, -halfSize, -halfSize, -halfSize),
 
 		// Right wall
-		Vertex(1.f, -1.f, -1.f, 1.f, -1.f, -1.f),
-		Vertex(1.f, -1.f, 1.f, 1.f, -1.f, 1.f),
-		Vertex(1.f, 1.f, 1.f, 1.f, 1.f, 1.f),
-		Vertex(1.f, 1.f, 1.f, 1.f, 1.f, 1.f),
-		Vertex(1.f, 1.f, -1.f, 1.f, 1.f, -1.f),
-		Vertex(1.f, -1.f, -1.f, 1.f, -1.f, -1.f)
+		Vertex(halfSize, -halfSize, -halfSize, halfSize, -halfSize, -halfSize),
+		Vertex(halfSize, -halfSize, halfSize, halfSize, -halfSize, halfSize),
+		Vertex(halfSize, halfSize, halfSize, halfSize, halfSize, halfSize),
+		Vertex(halfSize, halfSize, halfSize, halfSize, halfSize, halfSize),
+		Vertex(halfSize, halfSize, -halfSize, halfSize, halfSize, -halfSize),
+		Vertex(halfSize, -halfSize, -halfSize, halfSize, -halfSize, -halfSize)
 		}, cooking);
 
 	return ret;
