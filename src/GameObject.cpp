@@ -1,27 +1,29 @@
 #include "GameObject.h"
 
-Pinball::GameObject::GameObject()
+using namespace Pinball;
+
+GameObject::GameObject()
 {
 	mActor = nullptr;
 }
 
-Pinball::GameObject::GameObject(Pinball::Mesh geometry, Pinball::GameObject::Type type)
+GameObject::GameObject(Mesh geometry, GameObject::Type type)
 {
 	mActor = nullptr;
 
 	Geometry(geometry, type);
 }
 
-Pinball::Mesh Pinball::GameObject::Geometry()
+Mesh GameObject::Geometry()
 {
 	return mMesh;
 }
 
-void Pinball::GameObject::Geometry(Pinball::Mesh mesh, Pinball::GameObject::Type type)
+void GameObject::Geometry(Mesh mesh, GameObject::Type type)
 {
 	mMesh = mesh;
 
-	if (type == Pinball::GameObject::Type::Static)
+	if (type == GameObject::Type::Static)
 	{
 		mActor = (physx::PxActor*)PxGetPhysics().createRigidStatic(physx::PxTransform(physx::PxIdentity));
 	}
@@ -31,17 +33,17 @@ void Pinball::GameObject::Geometry(Pinball::Mesh mesh, Pinball::GameObject::Type
 	}
 }
 
-physx::PxActor* Pinball::GameObject::GetPxActor()
+physx::PxActor* GameObject::GetPxActor()
 {
 	return mActor;
 }
 
-physx::PxTransform Pinball::GameObject::Transform()
+physx::PxTransform GameObject::Transform()
 {
 	return ((physx::PxRigidActor*)mActor)->getGlobalPose();
 }
 
-void Pinball::GameObject::Transform(physx::PxTransform transform)
+void GameObject::Transform(physx::PxTransform transform)
 {
 	((physx::PxRigidActor*)mActor)->setGlobalPose(transform);
 }
