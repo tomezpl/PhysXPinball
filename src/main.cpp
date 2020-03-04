@@ -188,8 +188,14 @@ int main(int* argc, char** argv)
 	// PhysX
 	physx::PxDefaultAllocator pxAlloc;
 	physx::PxDefaultErrorCallback pxErrClb;
+	physx::PxPvd* pxPvd;
+
 	physx::PxFoundation* pxFoundation = PxCreateFoundation(PX_FOUNDATION_VERSION, pxAlloc, pxErrClb);
-	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale());
+	pxPvd = physx::PxCreatePvd(*pxFoundation);
+	physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
+	pxPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
+
+	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale(), false, pxPvd);
 	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), physx::PxCookingParams(physx::PxTolerancesScale()));
 
 	physx::PxSceneDesc sceneDesc = physx::PxSceneDesc(physx::PxTolerancesScale());
@@ -204,7 +210,7 @@ int main(int* argc, char** argv)
 	Pinball::GameObject boxObj(boxMesh);
 	boxObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, 3.0f, -5.f), physx::PxQuat(physx::PxIdentity)));
 
-	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking, 10.0f);
+	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking);
 	Pinball::GameObject planeObj(planeMesh, Pinball::GameObject::Type::Static);
 
 	scene->addActor(*boxObj.GetPxActor());
@@ -239,13 +245,26 @@ int main(int* argc, char** argv)
 	double deltaTime = 0.0;
 	double elapsedTime = glfwGetTime();
 
+	bool paused = false;
+
 	while (running)
 	{
+		bool spacePressed = false;
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		{
+			spacePressed = true;
+		}
+
 		// Process events
 		glfwPollEvents();
 		if (glfwWindowShouldClose(window))
 		{
 			running = false;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE && spacePressed)
+		{
+			paused = !paused;
 		}
 
 		// Process logic, prepare scene
@@ -254,8 +273,11 @@ int main(int* argc, char** argv)
 		deltaTime = elapsedTime - prevElapsedTime;
 
 		// Simulate physics
-		scene->simulate(deltaTime);
-		scene->fetchResults(true);
+		if (!paused)
+		{
+			scene->simulate(deltaTime);
+			scene->fetchResults(true);
+		}
 
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);
