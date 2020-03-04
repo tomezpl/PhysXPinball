@@ -158,7 +158,7 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, 
 	case MeshType::Convex:
 		meshDesc.points.count = GetCount();
 		meshDesc.points.data = GetData();
-		meshDesc.points.stride = sizeof(float) * 3;
+		meshDesc.points.stride = sizeof(float) * 3; // Separate position coords from normals!
 
 		meshDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX;
 		if (cooking->cookConvexMesh(meshDesc, buf))

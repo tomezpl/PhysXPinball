@@ -217,6 +217,8 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="res\GLSL\Diffuse.frag" />
+    <None Include="res\GLSL\Diffuse.vert" />
     <None Include="res\GLSL\Unlit.frag" />
     <None Include="res\GLSL\Unlit.vert" />
   </ItemGroup>

@@ -10,9 +10,9 @@ Vertex::Vertex(float px, float py, float pz, float nx, float ny, float nz)
 
 float* Vertex::GetData()
 {
-	float* ret = new float[6]{ pX(), pY(), pZ(), nX(), nY(), nZ() };
+	float* ret = new float[6];
 
-	//std::memcpy(ret, mData, 6 * sizeof(float));
+	std::memcpy(ret, mData, 6 * sizeof(float));
 
 	return ret;
 }

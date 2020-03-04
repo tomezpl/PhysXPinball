@@ -36,6 +36,12 @@
     <None Include="res\GLSL\Unlit.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\GLSL\Diffuse.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\GLSL\Diffuse.vert">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Vertex.h">
