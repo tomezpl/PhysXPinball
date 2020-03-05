@@ -6,7 +6,8 @@
 # User-specific files
 *.rsuser
 *.suo
-*.user
+# Need to commit the project .user file as it contains the debugger's working directory!
+# *.user
 *.userosscache
 *.sln.docstates
 
