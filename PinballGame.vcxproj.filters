@@ -56,5 +56,8 @@
     <ClInclude Include="src\Middleware.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\OBJ_Loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

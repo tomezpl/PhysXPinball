@@ -76,7 +76,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include;$(SolutionDir)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -109,7 +109,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include;$(SolutionDir)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -129,7 +129,9 @@ move "$(TargetDir)\temp\PhysXDevice64.dll" "$(TargetDir)\temp\dllFiles"
 move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
 rmdir "$(TargetDir)\temp" /s /q
 mkdir "$(TargetDir)\GLSL"
-xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
+xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c
+mkdir "$(TargetDir)\Models"
+xcopy "$(ProjectDir)\res\Models" "$(TargetDir)\Models" /y /c</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -144,7 +146,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include;$(SolutionDir)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -180,7 +182,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\include;$(PHYSX_SDK)\..\PxShared\include;$(SolutionDir)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -223,6 +225,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     <None Include="res\GLSL\Unlit.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\OBJ_Loader.h" />
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\Middleware.h" />

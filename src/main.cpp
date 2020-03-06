@@ -16,6 +16,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+
 // Game engine & PhysX
 #include "GameObject.h"
 #include "Middleware.h"
@@ -241,11 +243,16 @@ int main(int* argc, char** argv)
 	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking);
 	Pinball::GameObject planeObj(planeMesh, Pinball::GameObject::Type::Static);
 
+	std::vector<Pinball::Mesh> levelMesh = Pinball::Mesh::fromFile("Models/level.obj", cooking);
+
 	scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
 	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
+
+	// Import level
+
 
 	glGenBuffers(1, &vbo);
 	glGenVertexArrays(1, &vao);
