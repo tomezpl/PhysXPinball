@@ -11,6 +11,7 @@ namespace Pinball {
 	public:
 		// Copies vertices to a new float array.
 		float* GetData();
+
 		// Getters/setters for position and normal elements.
 		float pX(), pX(float), pY(), pY(float), pZ(), pZ(float), nX(), nX(float), nY(), nY(float), nZ(), nZ(float);
 

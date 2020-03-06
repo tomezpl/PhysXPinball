@@ -1,5 +1,6 @@
 #include "GameObject.h"
 #include "Middleware.h"
+#include <glm/glm.hpp>
 
 using namespace Pinball;
 
@@ -39,15 +40,30 @@ void GameObject::Geometry(Mesh mesh, GameObject::Type type, GameObject::Collider
 {
 	mMesh = mesh;
 
+	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *_Mat) }; // TODO: won't this cause a memory leak on reinitialisation?
+
+	if (mMesh.GetMeshType() == Mesh::MeshType::Plane)
+	{
+		mShapes[0]->setLocalPose(physx::PxTransform(0.0f, 0.0f, 0.0f, physx::PxQuat(glm::radians(90.0f), physx::PxVec3(0.0f, 0.0f, 1.0f))));
+	}
+
 	if (type == GameObject::Type::Static)
 	{
 		mActor = (physx::PxActor*)PxGetPhysics().createRigidStatic(physx::PxTransform(physx::PxIdentity));
-		((physx::PxRigidStatic*)mActor)->createShape(*Geometry().GetPxGeometry(), *_Mat);
+		
+		for (int i = 0; i < mShapes.size(); i++)
+		{
+			((physx::PxRigidStatic*)mActor)->attachShape(*mShapes[i]);
+		}
 	}
 	else
 	{
 		mActor = (physx::PxActor*)PxGetPhysics().createRigidDynamic(physx::PxTransform(physx::PxIdentity));
-		((physx::PxRigidDynamic*)mActor)->createShape(*Geometry().GetPxGeometry(), *_Mat);
+
+		for (int i = 0; i < mShapes.size(); i++)
+		{
+			((physx::PxRigidDynamic*)mActor)->attachShape(*mShapes[i]);
+		}
 	}
 
 	// TODO: can this cause memory leaks on reinitialising geometry?
@@ -72,3 +88,5 @@ void GameObject::Transform(physx::PxTransform transform)
 {
 	((physx::PxRigidActor*)mActor)->setGlobalPose(transform);
 }
+
+

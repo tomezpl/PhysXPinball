@@ -16,6 +16,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+
 // Game engine & PhysX
 #include "GameObject.h"
 #include "Middleware.h"
@@ -37,13 +39,10 @@ std::string getFileContents(std::string path)
 	return ret;
 }
 
-// OpenGL resources
-GLuint gVBO;
-GLuint gVAO;
-GLuint gGLProgram;
-
-glm::mat4 getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec2 viewport)
+glm::mat4* getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec2 viewport)
 {
+	glm::mat4* ret = new glm::mat4[3];
+
 	physx::PxTransform worldTransform = obj.Transform();
 	glm::vec3 modelPos = glm::vec3(worldTransform.p.x, worldTransform.p.y, worldTransform.p.z);
 	glm::quat modelRot(worldTransform.q.w, worldTransform.q.x, worldTransform.q.y, worldTransform.q.z);
@@ -55,31 +54,57 @@ glm::mat4 getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec2 vie
 	
 	glm::mat4 proj = glm::perspective(glm::radians(60.0f), viewport.x / viewport.y, 0.01f, 1000.0f);
 
-	return proj * view * model;
+	ret[0] = model;
+	ret[1] = view;
+	ret[2] = proj;
+
+	return ret;
 }
 
-void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport)
+float* mat4ToRaw(glm::mat4 mat)
 {
-	glBindVertexArray(gVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), obj.Geometry().GetData(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-	glm::mat4 mvp = getTransform(obj, glm::vec3(0.0f, 0.0f, 5.0f), viewport);
-	float* mvpMat = new float[4 * 4];
+	float* ret = new float[4*4];
 	for (int i = 0; i < 4 * 4; i += 4)
 	{
 		// TODO: could just memcpy this
-		mvpMat[i] = mvp[i / 4].x;
-		mvpMat[i + 1] = mvp[i / 4].y;
-		mvpMat[i + 2] = mvp[i / 4].z;
-		mvpMat[i + 3] = mvp[i / 4].w;
+		ret[i] = mat[i / 4].x;
+		ret[i + 1] = mat[i / 4].y;
+		ret[i + 2] = mat[i / 4].z;
+		ret[i + 3] = mat[i / 4].w;
 	}
-	glUniformMatrix4fv(glGetUniformLocation(gGLProgram, "_MVP"), 1, false, mvpMat);
-	glUniform3fv(glGetUniformLocation(gGLProgram, "_Color"), 1, obj.Geometry().Color());
+
+	return ret;
+}
+
+void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint vbo, GLuint shader)
+{
+	glUseProgram(shader);
+
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	// Position data
+	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), obj.Geometry().GetData(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
+	// Normal data
+	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), obj.Geometry().GetData(), GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)3);
+	glEnableVertexAttribArray(0); // enable position data
+	glEnableVertexAttribArray(1); // enable normal data
+	glm::mat4* mvp = getTransform(obj, glm::vec3(0.0f, 0.0f, 5.0f), viewport);
+	float* model = mat4ToRaw(mvp[0]), *view = mat4ToRaw(mvp[1]), *proj = mat4ToRaw(mvp[2]);
+	
+	glUniformMatrix4fv(glGetUniformLocation(shader, "_Model"), 1, false, model);
+	glUniformMatrix4fv(glGetUniformLocation(shader, "_View"), 1, false, view);
+	glUniformMatrix4fv(glGetUniformLocation(shader, "_Proj"), 1, false, proj);
+	glUniform3fv(glGetUniformLocation(shader, "_Color"), 1, obj.Geometry().Color());
 	glDrawArrays(GL_TRIANGLES, 0, obj.Geometry().GetCount());
 	glBindVertexArray(0);
-	delete[] mvpMat;
+
+	// Release memory
+	delete[] mvp;
+	delete[] model;
+	delete[] view;
+	delete[] proj;
 }
 
 ///A customised collision class, implemneting various callbacks
@@ -165,6 +190,11 @@ int main(int* argc, char** argv)
 	// Assign GL context before working with GL
 	glfwMakeContextCurrent(window);
 
+	// OpenGL resources
+	GLuint vbo;
+	GLuint vao;
+	GLuint diffuseShader, unlitShader;
+
 	glewExperimental = true;
 	// GLEW intialisation (has to be done once GL context is assigned)
 	glewInit();
@@ -188,8 +218,14 @@ int main(int* argc, char** argv)
 	// PhysX
 	physx::PxDefaultAllocator pxAlloc;
 	physx::PxDefaultErrorCallback pxErrClb;
+	physx::PxPvd* pxPvd;
+
 	physx::PxFoundation* pxFoundation = PxCreateFoundation(PX_FOUNDATION_VERSION, pxAlloc, pxErrClb);
-	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale());
+	pxPvd = physx::PxCreatePvd(*pxFoundation);
+	physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
+	pxPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
+
+	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale(), false, pxPvd);
 	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), physx::PxCookingParams(physx::PxTolerancesScale()));
 
 	physx::PxSceneDesc sceneDesc = physx::PxSceneDesc(physx::PxTolerancesScale());
@@ -204,8 +240,10 @@ int main(int* argc, char** argv)
 	Pinball::GameObject boxObj(boxMesh);
 	boxObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, 3.0f, -5.f), physx::PxQuat(physx::PxIdentity)));
 
-	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking, 10.0f);
+	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking);
 	Pinball::GameObject planeObj(planeMesh, Pinball::GameObject::Type::Static);
+
+	std::vector<Pinball::Mesh> levelMesh = Pinball::Mesh::fromFile("Models/level.obj", cooking);
 
 	scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
@@ -213,39 +251,73 @@ int main(int* argc, char** argv)
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
 	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
 
-	glGenBuffers(1, &gVBO);
-	glGenVertexArrays(1, &gVAO);
+	// Import level
+
+
+	glGenBuffers(1, &vbo);
+	glGenVertexArrays(1, &vao);
 
 	// Shaders
 	GLuint vertShader, fragShader;
 	vertShader = glCreateShader(GL_VERTEX_SHADER);
 	fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-	std::string vertShaderSrc = getFileContents("GLSL/Unlit.vert");
+	std::string vertShaderSrc = getFileContents("GLSL/Diffuse.vert");
 	const char* vertShaderCStr = vertShaderSrc.c_str();
 	int vertShaderLength = vertShaderSrc.length();
 	glShaderSource(vertShader, 1, &vertShaderCStr, &vertShaderLength);
-	std::string fragShaderSrc = getFileContents("GLSL/Unlit.frag");
+	std::string fragShaderSrc = getFileContents("GLSL/Diffuse.frag");
 	const char* fragShaderCStr = fragShaderSrc.c_str();
 	int fragShaderLength = fragShaderSrc.length();
 	glShaderSource(fragShader, 1, &fragShaderCStr, &fragShaderLength);
 
-	gGLProgram = glCreateProgram();
-	glAttachShader(gGLProgram, vertShader);
-	glAttachShader(gGLProgram, fragShader);
+	diffuseShader = glCreateProgram();
+	glAttachShader(diffuseShader, vertShader);
+	glAttachShader(diffuseShader, fragShader);
 	glCompileShader(vertShader);
 	glCompileShader(fragShader);
-	glLinkProgram(gGLProgram);
+	glLinkProgram(diffuseShader);
+
+	vertShader = glCreateShader(GL_VERTEX_SHADER);
+	fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	vertShaderSrc = getFileContents("GLSL/Unlit.vert");
+	vertShaderCStr = vertShaderSrc.c_str();
+	vertShaderLength = vertShaderSrc.length();
+	glShaderSource(vertShader, 1, &vertShaderCStr, &vertShaderLength);
+	fragShaderSrc = getFileContents("GLSL/Unlit.frag");
+	fragShaderCStr = fragShaderSrc.c_str();
+	fragShaderLength = fragShaderSrc.length();
+	glShaderSource(fragShader, 1, &fragShaderCStr, &fragShaderLength);
+
+	unlitShader = glCreateProgram();
+	glAttachShader(unlitShader, vertShader);
+	glAttachShader(unlitShader, fragShader);
+	glCompileShader(vertShader);
+	glCompileShader(fragShader);
+	glLinkProgram(unlitShader);
 
 	double deltaTime = 0.0;
 	double elapsedTime = glfwGetTime();
 
+	bool paused = false;
+
 	while (running)
 	{
+		bool spacePressed = false;
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		{
+			spacePressed = true;
+		}
+
 		// Process events
 		glfwPollEvents();
 		if (glfwWindowShouldClose(window))
 		{
 			running = false;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE && spacePressed)
+		{
+			paused = !paused;
 		}
 
 		// Process logic, prepare scene
@@ -254,19 +326,21 @@ int main(int* argc, char** argv)
 		deltaTime = elapsedTime - prevElapsedTime;
 
 		// Simulate physics
-		scene->simulate(deltaTime);
-		scene->fetchResults(true);
+		if (!paused)
+		{
+			scene->simulate(deltaTime);
+			scene->fetchResults(true);
+		}
 
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glPointSize(10.0f);
-		glUseProgram(gGLProgram);
 		int vWidth = 0, vHeight = 0;
 		glfwGetWindowSize(window, &vWidth, &vHeight);
-		drawMesh(boxObj, glm::vec2(vWidth, vHeight));
-		drawMesh(planeObj, glm::vec2(vWidth, vHeight));
+		drawMesh(boxObj, glm::vec2(vWidth, vHeight), vao, vbo, diffuseShader);
+		drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, unlitShader);
 
 		glfwSwapBuffers(window);
 	}

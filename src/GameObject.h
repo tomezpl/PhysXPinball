@@ -8,6 +8,7 @@ namespace Pinball {
 		Mesh mMesh;
 
 		physx::PxActor* mActor;
+		std::vector<physx::PxShape*> mShapes;
 
 		// Default material
 		static physx::PxMaterial* _Mat;
