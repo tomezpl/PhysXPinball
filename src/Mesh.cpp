@@ -1,5 +1,10 @@
 #include "Mesh.h"
+#include "ModelImporter.h"
 #include <iostream>
+#include <algorithm>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 using namespace Pinball;
 
@@ -8,13 +13,15 @@ Mesh::Mesh()
 	mPxGeometry = nullptr;
 	mColor = new float[3]{ 0.0f, 0.0f, 0.0f };
 	mPrimitiveHx = physx::PxVec3(0.0f);
+	mName = "";
 }
 
-Mesh::Mesh(std::vector<Vertex> vertices, physx::PxCooking* cooking, std::vector<unsigned int> indices, Mesh::MeshType meshType)
+Mesh::Mesh(std::vector<Vertex> vertices, physx::PxCooking* cooking, std::vector<unsigned int> indices, Mesh::MeshType meshType, bool updatePx)
 {
 	mColor = new float[3]{ 0.0f, 0.0f, 0.0f };
 	mPrimitiveHx = physx::PxVec3(0.0f);
-	SetVertices(vertices, cooking, indices, meshType);
+	mName = "";
+	SetVertices(vertices, cooking, indices, meshType, updatePx);
 }
 
 void Mesh::Color(float r, float g, float b)
@@ -27,6 +34,16 @@ void Mesh::Color(float r, float g, float b)
 float* Mesh::Color()
 {
 	return mColor;
+}
+
+std::string Pinball::Mesh::Name()
+{
+	return mName;
+}
+
+void Pinball::Mesh::Name(std::string name)
+{
+	mName = name;
 }
 
 Mesh Mesh::createBox(physx::PxCooking* cooking, float size)
@@ -104,57 +121,39 @@ Mesh Mesh::createPlane(physx::PxCooking* cooking)
 	return ret;
 }
 
-std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking)
+std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking, bool updatePx)
 {
 	std::vector<Mesh> ret;
 
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> loadedShapes;
-	
-	if (tinyobj::LoadObj(&attrib, &loadedShapes, nullptr, nullptr, nullptr, filePath.c_str()))
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
-		for (int i = 0; i < loadedShapes.size(); i++)
-		{
-			Mesh newMesh;
-			std::vector<Vertex> vertices;
-			std::vector<unsigned int> indices;
-			MeshType meshType = MeshType::Convex;
-
-			// Loop over faces(polygon)
-			size_t index_offset = 0;
-			for (size_t f = 0; f < loadedShapes[i].mesh.num_face_vertices.size(); f++) {
-				int fv = loadedShapes[i].mesh.num_face_vertices[f];
-
-				// Loop over vertices in the face.
-				for (size_t v = 0; v < fv; v++) {
-					// access to vertex
-					tinyobj::index_t idx = loadedShapes[i].mesh.indices[index_offset + v];
-					tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
-					tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
-					tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
-					tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
-					tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
-					tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
-
-					vertices.push_back(Vertex(vx, vy, vz, nx, ny, nz));
-					indices.push_back(idx.vertex_index); // TODO: does this mean our normals might get lost?
-				}
-				index_offset += fv;
-			}
-
-			if (loadedShapes[i].name.find("Ball") != std::string::npos)
-			{
-				meshType = MeshType::Sphere;
-			}
-
-			newMesh.SetVertices(vertices, cooking, indices, meshType);
-
-			ret.push_back(newMesh);
-		}
+		std::cout << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
 	}
-	else
+
+	for (size_t i = 0; i < scene->mNumMeshes; i++)
 	{
-		std::cerr << "Mesh::fromFile: failed loading file" << std::endl;
+		aiMesh* mesh = scene->mMeshes[i];
+
+		std::vector<Vertex> vertices;
+		std::vector<unsigned int> indices;
+
+		for (size_t j = 0; j < mesh->mNumVertices; j++)
+		{
+			vertices.push_back(Vertex(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z, mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z));
+		}
+
+		for (size_t j = 0; j < mesh->mNumFaces; j++)
+		{
+			indices.push_back(mesh->mFaces[j].mIndices[0]);
+			indices.push_back(mesh->mFaces[j].mIndices[1]);
+			indices.push_back(mesh->mFaces[j].mIndices[2]);
+		}
+
+		ret.push_back(Mesh(vertices, cooking, indices, i == 1 ? MeshType::Sphere : MeshType::TriangleList));
+		ret[ret.size()-1].Name(i == 0 ? "Table" : i == 1 ? "Ball" : "");
 	}
 
 	return ret;
@@ -190,18 +189,20 @@ float* Mesh::GetData()
 		ret[(i*3)] = vert[0];
 		ret[(i * 3) + 1] = vert[1];
 		ret[(i * 3) + 2] = vert[2];
+		delete[] vert;
 	}
 
 	return ret;
 }
 
 // Assigns the vertex buffer and creates a convex PhysX mesh
-void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, std::vector<unsigned int> indices, Mesh::MeshType meshType)
+void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, std::vector<unsigned int> indices, Mesh::MeshType meshType, bool updatePx)
 {
 	// TODO: shouldn't I delete each vertex first? they contain raw pointers
 	mVertices = vertices;
 	mIndices = indices;
 
+	// Find sphere radius from vertices
 	if (meshType == MeshType::Sphere)
 	{
 		float maxX = 0.f;
@@ -221,12 +222,25 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, 
 
 	mType = meshType;
 
+	if (updatePx)
+	{
+		UpdatePx(cooking);
+	}
+
+}
+
+void Mesh::UpdatePx(physx::PxCooking* cooking)
+{
 	physx::PxDefaultMemoryOutputStream buf;
+	physx::PxDefaultMemoryOutputStream triBuf;
 
 	physx::PxConvexMeshDesc meshDesc;
 	physx::PxConvexMesh* convexMesh = nullptr;
 
-	switch (meshType)
+	physx::PxTriangleMeshDesc triMeshDesc;
+	physx::PxTriangleMesh* triMesh = nullptr;
+
+	switch (mType)
 	{
 	case MeshType::Convex:
 		meshDesc.points.count = GetCount();
@@ -235,9 +249,19 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, 
 
 		if (IsIndexed())
 		{
+			// Align lowest index with 0
+			/*unsigned int offset = *std::min_element(mIndices.begin(), mIndices.end());
+			for (int i = 0; i < mIndices.size(); i++)
+			{
+				mIndices[i] -= offset;
+			}*/
 			meshDesc.indices.count = GetIndexCount();
 			meshDesc.indices.data = GetIndices();
 			meshDesc.indices.stride = 0;
+		}
+		if (!IsIndexed())
+		{
+			std::cout << std::endl;
 		}
 
 		meshDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX;
@@ -263,6 +287,49 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, 
 		return;
 	case MeshType::TriangleList:
 		// TODO
+		triMeshDesc.points.count = GetCount();
+		triMeshDesc.points.data = GetData();
+		triMeshDesc.points.stride = sizeof(float) * 3; // Separate position coords from normals!
+
+		if (IsIndexed())
+		{
+			// Align lowest index with 0
+			/*unsigned int offset = *std::min_element(mIndices.begin(), mIndices.end());
+			for (int i = 0; i < mIndices.size(); i++)
+			{
+				mIndices[i] -= offset;
+			}*/
+
+			triMeshDesc.triangles.count = GetIndexCount() / 3;
+			triMeshDesc.triangles.data = GetIndices();
+			triMeshDesc.triangles.stride = sizeof(unsigned int) * 3;
+			std::cout << "triMeshDesc valid: " << triMeshDesc.isValid() << std::endl;
+		}
+		if (!IsIndexed())
+		{
+			std::cout << std::endl;
+		}
+
+		if (cooking->cookTriangleMesh(triMeshDesc, triBuf))
+		{
+			std::cout << "Cooking PhysX triangle mesh successful." << std::endl;
+		}
+		else
+		{
+			std::cerr << "Cooking PhysX triangle mesh failed." << std::endl;
+		}
+
+		triMesh = PxGetPhysics().createTriangleMesh(*(new physx::PxDefaultMemoryInputData(triBuf.getData(), triBuf.getSize())));
+		if (triMesh)
+		{
+			std::cout << "Created a PxTriangleMesh successfully." << std::endl;
+		}
+		else
+		{
+			std::cerr << "Failed to create PxTriangleMesh." << std::endl;
+		}
+
+		mPxGeometry = new physx::PxTriangleMeshGeometry(triMesh, physx::PxMeshScale());
 		return;
 	case MeshType::Box:
 		mPxGeometry = new physx::PxBoxGeometry(mPrimitiveHx);
@@ -274,6 +341,19 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, 
 		mPxGeometry = new physx::PxSphereGeometry(mPrimitiveHx.x);
 		return;
 	}
+}
+
+physx::PxVec3 Pinball::Mesh::GetCenterPoint()
+{
+	physx::PxVec3 ret = physx::PxVec3(0.f);
+	size_t count = GetCount();
+	for (size_t i = 0; i < mVertices.size(); i++)
+	{
+		Vertex v = mVertices[i];
+		ret += physx::PxVec3(v.pX(), v.pY(), v.pZ()) / count;
+	}
+
+	return ret;
 }
 
 size_t Mesh::GetIndexCount()

@@ -76,28 +76,44 @@ float* mat4ToRaw(glm::mat4 mat)
 	return ret;
 }
 
-void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint vbo, GLuint shader)
+void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint vbo, GLuint ibo, GLuint shader)
 {
+	float* verts = obj.Geometry().GetData();
+	unsigned int* indices = obj.Geometry().GetIndices();
+
 	glUseProgram(shader);
 
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	// Position data
-	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), obj.Geometry().GetData(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), verts, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
 	// Normal data
-	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), obj.Geometry().GetData(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), verts, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)3);
 	glEnableVertexAttribArray(0); // enable position data
 	glEnableVertexAttribArray(1); // enable normal data
+	
 	glm::mat4* mvp = getTransform(obj, glm::vec3(0.0f, 0.0f, 5.0f), viewport);
 	float* model = mat4ToRaw(mvp[0]), *view = mat4ToRaw(mvp[1]), *proj = mat4ToRaw(mvp[2]);
 	
 	glUniformMatrix4fv(glGetUniformLocation(shader, "_Model"), 1, false, model);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "_View"), 1, false, view);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "_Proj"), 1, false, proj);
-	glUniform3fv(glGetUniformLocation(shader, "_Color"), 1, obj.Geometry().Color());
-	glDrawArrays(GL_TRIANGLES, 0, obj.Geometry().GetCount());
+	float* color = obj.Geometry().Color();
+	glUniform3fv(glGetUniformLocation(shader, "_Color"), 1, color);
+
+	if (obj.Geometry().IsIndexed())
+	{
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj.Geometry().GetIndexCount() * sizeof(unsigned int), indices, GL_STATIC_DRAW);
+		glDrawElements(GL_TRIANGLES, obj.Geometry().GetIndexCount(), GL_UNSIGNED_INT, (GLvoid*)0);
+	}
+	else
+	{
+		glDrawArrays(GL_TRIANGLES, 0, obj.Geometry().GetCount());
+	}
+
 	glBindVertexArray(0);
 
 	// Release memory
@@ -105,6 +121,7 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint v
 	delete[] model;
 	delete[] view;
 	delete[] proj;
+	delete[] verts;
 }
 
 ///A customised collision class, implemneting various callbacks
@@ -159,7 +176,7 @@ public:
 				//check eNOTIFY_TOUCH_LOST
 				if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
 				{
-					std::cerr << "onContact::eNOTIFY_TOUCH_LOST" << std::endl;
+				std::cerr << "onContact::eNOTIFY_TOUCH_LOST" << std::endl;
 				}
 			}
 		}
@@ -172,6 +189,11 @@ public:
 	virtual void onAdvance(const physx::PxRigidBody * const* bodyBuffer, const physx::PxTransform * poseBuffer, const physx::PxU32 count) {}
 #endif
 };
+
+bool strContains(std::string str, std::string substr)
+{
+	return str.find(substr) != std::string::npos;
+}
 
 int main(int* argc, char** argv)
 {
@@ -191,7 +213,7 @@ int main(int* argc, char** argv)
 	glfwMakeContextCurrent(window);
 
 	// OpenGL resources
-	GLuint vbo;
+	GLuint vbo, ibo;
 	GLuint vao;
 	GLuint diffuseShader, unlitShader;
 
@@ -226,7 +248,9 @@ int main(int* argc, char** argv)
 	pxPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
 
 	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale(), false, pxPvd);
-	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), physx::PxCookingParams(physx::PxTolerancesScale()));
+	physx::PxCookingParams cookingParams = physx::PxCookingParams(physx::PxTolerancesScale());
+	//cookingParams.meshPreprocessParams |= physx::PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), cookingParams);
 
 	physx::PxSceneDesc sceneDesc = physx::PxSceneDesc(physx::PxTolerancesScale());
 	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
@@ -243,10 +267,52 @@ int main(int* argc, char** argv)
 	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking);
 	Pinball::GameObject planeObj(planeMesh, Pinball::GameObject::Type::Static);
 
-	std::vector<Pinball::Mesh> levelMesh = Pinball::Mesh::fromFile("Models/level.obj", cooking);
+	// TODO: change to std::map?
+	std::vector<Pinball::Mesh> levelMeshes = Pinball::Mesh::fromFile("Models/level_meshes.obj", cooking);
+	std::vector<Pinball::Mesh> levelOrigins = Pinball::Mesh::fromFile("Models/level_origins.obj", cooking, false);
+	Pinball::GameObject tableObj;
+	Pinball::GameObject ballObj;
+
+	for (size_t i = 0; i < levelMeshes.size(); i++)
+	{
+		Pinball::GameObject::Type objectType = Pinball::GameObject::Static;
+		Pinball::GameObject* objToAssignMesh = nullptr;
+		if (strContains(levelMeshes[i].Name(), "Ball"))
+		{
+			objectType = Pinball::GameObject::Dynamic;
+			objToAssignMesh = &ballObj;
+		}
+
+		if (strContains(levelMeshes[i].Name(), "Table"))
+		{
+			objToAssignMesh = &tableObj;
+		}
+
+		if (objToAssignMesh != nullptr)
+		{
+			objToAssignMesh->Geometry(levelMeshes[i], objectType);
+			objToAssignMesh->Transform(physx::PxTransform(levelOrigins[i].GetCenterPoint(), physx::PxQuat(physx::PxIdentity)));
+		}
+	}
+	scene->addActor(*tableObj.GetPxActor());
+	scene->addActor(*ballObj.GetPxActor());
+	/*for (int i = 0; i < levelMesh.size(); i++)
+	{
+		levelObj.push_back(Pinball::GameObject(levelMesh[i], Pinball::GameObject::Static));
+		scene->addActor(*levelObj[i].GetPxActor());
+	}*/
+	/*for (int i = 0; i < levelMesh.size(); i++)
+	{
+		if (!levelMesh[i].IsIndexed())
+		{
+			levelObj.Geometry(levelMesh[i], Pinball::GameObject::Static);
+			break;
+		}
+	}*/
 
 	scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
+	//scene->addActor(*levelObj.GetPxActor());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
 	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
@@ -255,6 +321,7 @@ int main(int* argc, char** argv)
 
 
 	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ibo);
 	glGenVertexArrays(1, &vao);
 
 	// Shaders
@@ -339,8 +406,10 @@ int main(int* argc, char** argv)
 		glPointSize(10.0f);
 		int vWidth = 0, vHeight = 0;
 		glfwGetWindowSize(window, &vWidth, &vHeight);
-		drawMesh(boxObj, glm::vec2(vWidth, vHeight), vao, vbo, diffuseShader);
-		drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, unlitShader);
+		drawMesh(boxObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader);
+		drawMesh(tableObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader);
+		drawMesh(ballObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader);
+		//drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, unlitShader);
 
 		glfwSwapBuffers(window);
 	}
