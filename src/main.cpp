@@ -51,6 +51,7 @@ glm::mat4* getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec2 vi
 	model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f)); // TODO: no scaling for now
 
 	glm::mat4 view = glm::translate(glm::mat4(1.0f), camPos * -1.0f);
+	view = glm::rotate(view, glm::radians(90.0f), glm::vec3(1.0f, 0.f, 0.0f));
 	
 	glm::mat4 proj = glm::perspective(glm::radians(60.0f), viewport.x / viewport.y, 0.01f, 1000.0f);
 
@@ -93,8 +94,9 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint v
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)3);
 	glEnableVertexAttribArray(0); // enable position data
 	glEnableVertexAttribArray(1); // enable normal data
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
-	glm::mat4* mvp = getTransform(obj, glm::vec3(0.0f, 0.0f, 5.0f), viewport);
+	glm::mat4* mvp = getTransform(obj, glm::vec3(0.0f, -12.5f, 30.0f), viewport);
 	float* model = mat4ToRaw(mvp[0]), *view = mat4ToRaw(mvp[1]), *proj = mat4ToRaw(mvp[2]);
 	
 	glUniformMatrix4fv(glGetUniformLocation(shader, "_Model"), 1, false, model);
@@ -103,17 +105,17 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint v
 	float* color = obj.Geometry().Color();
 	glUniform3fv(glGetUniformLocation(shader, "_Color"), 1, color);
 
-	if (obj.Geometry().IsIndexed())
+	/*if (obj.Geometry().IsIndexed())
 	{
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj.Geometry().GetIndexCount() * sizeof(unsigned int), indices, GL_STATIC_DRAW);
 		glDrawElements(GL_TRIANGLES, obj.Geometry().GetIndexCount(), GL_UNSIGNED_INT, (GLvoid*)0);
 	}
 	else
-	{
+	{*/
 		glDrawArrays(GL_TRIANGLES, 0, obj.Geometry().GetCount());
-	}
-
+	//}
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	// Release memory
@@ -403,7 +405,7 @@ int main(int* argc, char** argv)
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glPointSize(10.0f);
+		//glPointSize(10.0f);
 		int vWidth = 0, vHeight = 0;
 		glfwGetWindowSize(window, &vWidth, &vHeight);
 		drawMesh(boxObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader);

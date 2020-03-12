@@ -9,6 +9,7 @@ namespace Pinball {
 	class Mesh {
 	private:
 		std::vector<Vertex> mVertices;
+		std::vector<Vertex> mAllVerts;
 		std::vector<unsigned int> mIndices;
 		physx::PxGeometry* mPxGeometry;
 		float* mColor;
@@ -47,5 +48,7 @@ namespace Pinball {
 		static Mesh createBox(physx::PxCooking* cooking, float size = 1.0f);
 		static Mesh createPlane(physx::PxCooking* cooking);
 		static std::vector<Mesh> fromFile(std::string filePath, physx::PxCooking* cooking, bool updatePx = true);
+
+		static std::vector<Vertex> reverseIndexing(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 	};
 }

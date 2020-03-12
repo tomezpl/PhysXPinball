@@ -161,7 +161,7 @@ std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking
 
 size_t Mesh::GetCount()
 {
-	return mVertices.size();
+	return (IsIndexed()) ? mAllVerts.size() : mVertices.size();
 }
 
 int Mesh::GetMeshType()
@@ -184,7 +184,7 @@ float* Mesh::GetData()
 	{
 		// TODO: this is bugged, using slow version for now 
 		//memcpy(ret + i*3, mVertices[i].GetData(), 3 * sizeof(float));
-		float* vert = mVertices[i].GetData();
+		float* vert = (IsIndexed()) ? mAllVerts[i].GetData() : mVertices[i].GetData();
 		float v0 = vert[0], v1 = vert[1], v2 = vert[2];
 		ret[(i*3)] = vert[0];
 		ret[(i * 3) + 1] = vert[1];
@@ -200,6 +200,7 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, 
 {
 	// TODO: shouldn't I delete each vertex first? they contain raw pointers
 	mVertices = vertices;
+	mAllVerts = reverseIndexing(vertices, indices);
 	mIndices = indices;
 
 	// Find sphere radius from vertices
@@ -369,4 +370,16 @@ bool Mesh::IsIndexed()
 unsigned int* Mesh::GetIndices()
 {
 	return mIndices.data();
+}
+
+std::vector<Vertex> Mesh::reverseIndexing(std::vector<Vertex> vertices, std::vector<unsigned int> indices)
+{
+	std::vector<Vertex> ret;
+
+	for (size_t i = 0; i < indices.size(); i++)
+	{
+		ret.push_back(vertices[indices[i]]);
+	}
+
+	return ret;
 }
