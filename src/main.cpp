@@ -1,5 +1,6 @@
 // C++ std libs
 #include <vector>
+#include <map>
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -21,6 +22,8 @@
 // Game engine & PhysX
 #include "GameObject.h"
 #include "Middleware.h"
+#include "Light.h"
+#include "Util.h"
 
 // Utility: returns contents of a file as text. Used to get shader sources.
 std::string getFileContents(std::string path)
@@ -39,7 +42,7 @@ std::string getFileContents(std::string path)
 	return ret;
 }
 
-glm::mat4* getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec2 viewport)
+glm::mat4* getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec3 camRot, glm::vec2 viewport)
 {
 	glm::mat4* ret = new glm::mat4[3];
 
@@ -51,7 +54,9 @@ glm::mat4* getTransform(Pinball::GameObject& obj, glm::vec3 camPos, glm::vec2 vi
 	model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f)); // TODO: no scaling for now
 
 	glm::mat4 view = glm::translate(glm::mat4(1.0f), camPos * -1.0f);
-	view = glm::rotate(view, glm::radians(90.0f), glm::vec3(1.0f, 0.f, 0.0f));
+	view = glm::rotate(view, glm::radians(camRot.x), glm::vec3(1.f, 0.f, 0.f));
+	view = glm::rotate(view, glm::radians(camRot.y), glm::vec3(0.f, 1.f, 0.f));
+	view = glm::rotate(view, glm::radians(camRot.z), glm::vec3(0.f, 0.f, 1.f));
 	
 	glm::mat4 proj = glm::perspective(glm::radians(60.0f), viewport.x / viewport.y, 0.01f, 1000.0f);
 
@@ -77,7 +82,7 @@ float* mat4ToRaw(glm::mat4 mat)
 	return ret;
 }
 
-void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint vbo, GLuint ibo, GLuint shader)
+void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint vbo, GLuint ibo, GLuint shader, glm::vec3 camPos, glm::vec3 camRot, Pinball::Light sunLight, std::vector<Pinball::Light> pointLights)
 {
 	float* verts = obj.Geometry().GetData();
 	unsigned int* indices = obj.Geometry().GetIndices();
@@ -89,14 +94,13 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint v
 	// Position data
 	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), verts, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
-	// Normal data
-	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), verts, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)3);
 	glEnableVertexAttribArray(0); // enable position data
+	// Normal data
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
 	glEnableVertexAttribArray(1); // enable normal data
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
-	glm::mat4* mvp = getTransform(obj, glm::vec3(0.0f, -12.5f, 30.0f), viewport);
+	glm::mat4* mvp = getTransform(obj, camPos, camRot, viewport);
 	float* model = mat4ToRaw(mvp[0]), *view = mat4ToRaw(mvp[1]), *proj = mat4ToRaw(mvp[2]);
 	
 	glUniformMatrix4fv(glGetUniformLocation(shader, "_Model"), 1, false, model);
@@ -104,6 +108,28 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint v
 	glUniformMatrix4fv(glGetUniformLocation(shader, "_Proj"), 1, false, proj);
 	float* color = obj.Geometry().Color();
 	glUniform3fv(glGetUniformLocation(shader, "_Color"), 1, color);
+
+	float* sunDir = sunLight.Dir();
+	float* sunCol = sunLight.Color();
+	glUniform3fv(glGetUniformLocation(shader, "_Sun.direction"), 1, sunDir);
+	glUniform3fv(glGetUniformLocation(shader, "_Sun.color"), 1, sunCol);
+
+	for (size_t i = 0; i < pointLights.size(); i++)
+	{
+		float* plPos = pointLights[i].PointPos();
+		float* plCol = pointLights[i].Color();
+
+		glUniform3fv(glGetUniformLocation(shader, (std::string("_Lights[") + std::to_string(i) + "].position").c_str()), 1, plPos);
+		glUniform3fv(glGetUniformLocation(shader, (std::string("_Lights[") + std::to_string(i) + "].color").c_str()), 1, plCol);
+		glUniform1f(glGetUniformLocation(shader, (std::string("_Lights[") + std::to_string(i) + "].kc").c_str()), pointLights[i].kc);
+		glUniform1f(glGetUniformLocation(shader, (std::string("_Lights[") + std::to_string(i) + "].kl").c_str()), pointLights[i].kl);
+		glUniform1f(glGetUniformLocation(shader, (std::string("_Lights[") + std::to_string(i) + "].kq").c_str()), pointLights[i].kq);
+
+		delete[] plCol;
+		delete[] plPos;
+	}
+
+	glUniform1i(glGetUniformLocation(shader, "_LightCount"), pointLights.size());
 
 	/*if (obj.Geometry().IsIndexed())
 	{
@@ -115,7 +141,7 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint v
 	{*/
 		glDrawArrays(GL_TRIANGLES, 0, obj.Geometry().GetCount());
 	//}
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	// Release memory
@@ -124,6 +150,8 @@ void drawMesh(Pinball::GameObject& obj, glm::vec2 viewport, GLuint vao, GLuint v
 	delete[] view;
 	delete[] proj;
 	delete[] verts;
+	delete[] sunDir;
+	delete[] sunCol;
 }
 
 ///A customised collision class, implemneting various callbacks
@@ -192,11 +220,6 @@ public:
 #endif
 };
 
-bool strContains(std::string str, std::string substr)
-{
-	return str.find(substr) != std::string::npos;
-}
-
 int main(int* argc, char** argv)
 {
 	// GLFW initialisiation
@@ -242,20 +265,21 @@ int main(int* argc, char** argv)
 	// PhysX
 	physx::PxDefaultAllocator pxAlloc;
 	physx::PxDefaultErrorCallback pxErrClb;
-	physx::PxPvd* pxPvd;
+	physx::PxPvd* pxPvd = nullptr;
 
 	physx::PxFoundation* pxFoundation = PxCreateFoundation(PX_FOUNDATION_VERSION, pxAlloc, pxErrClb);
 	pxPvd = physx::PxCreatePvd(*pxFoundation);
 	physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
 	pxPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
 
-	PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale(), false, pxPvd);
+	physx::PxPhysics* pxPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale(), false, pxPvd);
+	PxInitExtensions(*pxPhysics, pxPvd);
 	physx::PxCookingParams cookingParams = physx::PxCookingParams(physx::PxTolerancesScale());
 	//cookingParams.meshPreprocessParams |= physx::PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
 	physx::PxCooking* cooking = PxCreateCooking(PX_PHYSICS_VERSION, PxGetPhysics().getFoundation(), cookingParams);
 
 	physx::PxSceneDesc sceneDesc = physx::PxSceneDesc(physx::PxTolerancesScale());
-	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 9.81f);
 	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
 	sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
 	physx::PxScene* scene = PxGetPhysics().createScene(sceneDesc);
@@ -264,7 +288,7 @@ int main(int* argc, char** argv)
 	Pinball::Mesh boxMesh = Pinball::Mesh::createBox(cooking);
 	boxMesh.Color(0.0f, 1.0f, 0.0f);
 	Pinball::GameObject boxObj(boxMesh);
-	boxObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, 3.0f, -5.f), physx::PxQuat(physx::PxIdentity)));
+	boxObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, 3.0f, 0.f), physx::PxQuat(physx::PxIdentity)));
 
 	Pinball::Mesh planeMesh = Pinball::Mesh::createPlane(cooking);
 	Pinball::GameObject planeObj(planeMesh, Pinball::GameObject::Type::Static);
@@ -274,53 +298,81 @@ int main(int* argc, char** argv)
 	std::vector<Pinball::Mesh> levelOrigins = Pinball::Mesh::fromFile("Models/level_origins.obj", cooking, false);
 	Pinball::GameObject tableObj;
 	Pinball::GameObject ballObj;
+	std::map<std::string, Pinball::GameObject> levelObjects;
 
+	physx::PxSphericalJoint* flipperJointL = nullptr;
+	physx::PxRevoluteJoint* flipperJointR = nullptr;
+
+	// Create game objects
 	for (size_t i = 0; i < levelMeshes.size(); i++)
 	{
 		Pinball::GameObject::Type objectType = Pinball::GameObject::Static;
 		Pinball::GameObject* objToAssignMesh = nullptr;
-		if (strContains(levelMeshes[i].Name(), "Ball"))
+		if (strContains("BallFlipperLFlipperR", levelMeshes[i].Name()))
 		{
 			objectType = Pinball::GameObject::Dynamic;
-			objToAssignMesh = &ballObj;
+			//objToAssignMesh = &ballObj;
 		}
 
 		if (strContains(levelMeshes[i].Name(), "Table"))
 		{
-			objToAssignMesh = &tableObj;
+			//objToAssignMesh = &tableObj;
+		}
+
+		if (objToAssignMesh == nullptr)
+		{
+			levelObjects[levelMeshes[i].Name()] = (Pinball::GameObject());
+			objToAssignMesh = &levelObjects[levelMeshes[i].Name()];
 		}
 
 		if (objToAssignMesh != nullptr)
 		{
 			objToAssignMesh->Geometry(levelMeshes[i], objectType);
 			objToAssignMesh->Transform(physx::PxTransform(levelOrigins[i].GetCenterPoint(), physx::PxQuat(physx::PxIdentity)));
+			scene->addActor(*objToAssignMesh->GetPxActor());
+			objToAssignMesh->Geometry().Color(0.5f, 0.5f, 0.5f);
+			/*if (strContains(levelMeshes[i].Name(), "Table"))
+			{
+				objToAssignMesh->Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f)));
+			}*/
 		}
 	}
-	scene->addActor(*tableObj.GetPxActor());
-	scene->addActor(*ballObj.GetPxActor());
-	/*for (int i = 0; i < levelMesh.size(); i++)
-	{
-		levelObj.push_back(Pinball::GameObject(levelMesh[i], Pinball::GameObject::Static));
-		scene->addActor(*levelObj[i].GetPxActor());
-	}*/
-	/*for (int i = 0; i < levelMesh.size(); i++)
-	{
-		if (!levelMesh[i].IsIndexed())
-		{
-			levelObj.Geometry(levelMesh[i], Pinball::GameObject::Static);
-			break;
-		}
-	}*/
+
+	((physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor());
+
+	flipperJointL = physx::PxSphericalJointCreate(*pxPhysics,
+		(physx::PxRigidActor*)levelObjects["HingeL"].GetPxActor(), physx::PxTransform((levelObjects["FlipperL"].Transform().p - levelObjects["HingeL"].Transform().p)),
+		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(physx::PxIdentity) /*physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * -2.0f)*/);
+
+	//flipperJointL->setDriveVelocity(1.0f);
+	levelObjects["FlipperL"].GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+	boxObj.GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+	((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 2.0f));
+	scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 1.0f);
+	scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
+	flipperJointL->setConstraintFlag(physx::PxConstraintFlag::eVISUALIZATION, true);
+	//flipperJointL->setRevoluteJointFlag(physx::PxRevoluteJointFlag::eDRIVE_ENABLED, true);
+	//flipperJointL->setRevoluteJointFlag(physx::PxRevoluteJointFlag::eDRIVE_FREESPIN, true);
+
+	boxObj.Transform(physx::PxTransform(levelObjects["FlipperL"].Transform().p + levelObjects["FlipperL"].Geometry().GetCenterPoint() * 3.f, physx::PxQuat(physx::PxIdentity)));
+
+	/*physx::PxRevoluteJoint* flipperJointLPointer = physx::PxRevoluteJointCreate(*pxPhysics,
+		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 3.0f),
+		((physx::PxRigidActor*)(boxObj.GetPxActor())), physx::PxTransform(physx::PxIdentity)
+	);*/
+
+	flipperJointR = physx::PxRevoluteJointCreate(*pxPhysics,
+		(physx::PxRigidActor*)levelObjects["HingeR"].GetPxActor(), physx::PxTransform(-1.0f * (levelObjects["HingeR"].Transform().p - levelObjects["FlipperR"].Transform().p)),
+		(physx::PxRigidActor*)levelObjects["FlipperR"].GetPxActor(), physx::PxTransform(physx::PxIdentity));
+		
+	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
+	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
 
 	scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
-	//scene->addActor(*levelObj.GetPxActor());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
 	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
-
-	// Import level
-
 
 	glGenBuffers(1, &vbo);
 	glGenBuffers(1, &ibo);
@@ -369,6 +421,25 @@ int main(int* argc, char** argv)
 
 	bool paused = false;
 
+	glm::vec3 camRot(60.0f, 0.0f, 0.0f);
+	glm::vec3 camPos(0.0f, -3.3f, 25.0f);
+	glm::vec3 lightPos(15.0f, 50.0f, -30.0f);
+	Pinball::Light sunLight(glm::vec3(), glm::vec3(10.0f, -5.0f, 7.5f), glm::vec3(1.0, 1.0, 1.0));
+	//light.pointPos = lightPos;
+	sunLight.dir = glm::vec3(10.0f, -5.0f, 7.5f);
+
+	// Prepare lights
+	std::vector<Pinball::Light> pointLights = {
+		Pinball::Light(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(), glm::vec3(1.0f, 0.0f, 0.0f)),
+		Pinball::Light(glm::vec3(12.5f, 10.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 0.0f)),
+		Pinball::Light(glm::vec3(-12.5f, 10.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 0.0f, 1.0f)),
+		Pinball::Light(glm::vec3(-12.5f, 10.0f, -10.0f), glm::vec3(), glm::vec3(0.0f, 1.0f, 1.0f)),
+		Pinball::Light(glm::vec3(12.5f, 10.0f, -10.0f), glm::vec3(), glm::vec3(0.0f, 0.0f, 1.0f))
+	};
+
+	float launchStrength = 0.0f;
+	bool buildUp = false;
+
 	while (running)
 	{
 		bool spacePressed = false;
@@ -389,6 +460,45 @@ int main(int* argc, char** argv)
 			paused = !paused;
 		}
 
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		{
+			((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, -20.0f));
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		{
+			//((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(-20.f, 0.0f, 0.0f));
+			//physx::PxRigidBodyExt::addForceAtLocalPos(*(physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor(), physx::PxVec3(-1.f, -1.f, 2.f) * 100.f, levelObjects["FlipperL"].Geometry().GetCenterPoint() * 1.f);
+			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setLinearVelocity(physx::PxVec3(1.5f, 0.f, -1.f)*50.f);
+			//((physx::PxRigidDynamic*)boxObj.GetPxActor())->addForce(physx::PxVec3(0.f, 1.f, -2.f) * 200);
+		}
+		else
+		{
+			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setLinearVelocity(physx::PxVec3(-1.5f, 0.f, -1.f) * -50.f);
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, 10.0f));
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		{
+			((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->addForce(physx::PxVec3(0.f, 00.f, 20.f));
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
+		{
+			launchStrength += 20.0f;
+			buildUp = true;
+		}
+		if (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_RELEASE && buildUp)
+		{
+			((physx::PxRigidDynamic*)levelObjects["Ball"].GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, -launchStrength));
+			launchStrength = 0.0f;
+			buildUp = false;
+		}
+
 		// Process logic, prepare scene
 		double prevElapsedTime = elapsedTime;
 		elapsedTime = glfwGetTime();
@@ -401,6 +511,10 @@ int main(int* argc, char** argv)
 			scene->fetchResults(true);
 		}
 
+		// Attach light to ball
+		physx::PxVec3 bp = levelObjects["Ball"].Transform().p;
+		pointLights[0].pointPos = glm::vec3(bp.x, bp.y + 10.0f, bp.z);
+
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -408,9 +522,11 @@ int main(int* argc, char** argv)
 		//glPointSize(10.0f);
 		int vWidth = 0, vHeight = 0;
 		glfwGetWindowSize(window, &vWidth, &vHeight);
-		drawMesh(boxObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader);
-		drawMesh(tableObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader);
-		drawMesh(ballObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader);
+		drawMesh(boxObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader, camPos, camRot, sunLight, pointLights);
+		for (std::map<std::string, Pinball::GameObject>::iterator it = levelObjects.begin(); it != levelObjects.end(); it++)
+		{
+			drawMesh(it->second, glm::vec2(vWidth, vHeight), vao, vbo, ibo, diffuseShader, camPos, camRot, sunLight, pointLights);
+		}
 		//drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, unlitShader);
 
 		glfwSwapBuffers(window);
@@ -419,6 +535,8 @@ int main(int* argc, char** argv)
 	glfwDestroyWindow(window);
 
 	scene->release();
+
+	PxCloseExtensions();
 
 	return 0;
 }

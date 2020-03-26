@@ -65,7 +65,8 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.meta
-*.obj
+# We need .obj as we use Wavefront OBJ for 3D meshes
+# *.obj
 *.iobj
 *.pch
 *.pdb

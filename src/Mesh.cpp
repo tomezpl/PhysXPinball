@@ -1,10 +1,10 @@
 #include "Mesh.h"
-#include "ModelImporter.h"
 #include <iostream>
 #include <algorithm>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "Util.h"
 
 using namespace Pinball;
 
@@ -100,7 +100,7 @@ Mesh Mesh::createBox(physx::PxCooking* cooking, float size)
 		Vertex(halfSize, halfSize, halfSize, halfSize, halfSize, halfSize),
 		Vertex(halfSize, halfSize, -halfSize, halfSize, halfSize, -halfSize),
 		Vertex(halfSize, -halfSize, -halfSize, halfSize, -halfSize, -halfSize)
-		}, cooking, {});
+		}, cooking, {}, MeshType::Box);
 
 	return ret;
 }
@@ -126,7 +126,7 @@ std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking
 	std::vector<Mesh> ret;
 
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate);
+	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -152,8 +152,10 @@ std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking
 			indices.push_back(mesh->mFaces[j].mIndices[2]);
 		}
 
-		ret.push_back(Mesh(vertices, cooking, indices, i == 1 ? MeshType::Sphere : MeshType::TriangleList));
-		ret[ret.size()-1].Name(i == 0 ? "Table" : i == 1 ? "Ball" : "");
+		std::string meshName = std::string(scene->mRootNode->mChildren[i]->mName.C_Str());
+		meshName = meshName.substr(0, meshName.find_last_of("_"));
+		ret.push_back(Mesh(vertices, cooking, indices, meshName == "Ball" ? MeshType::Sphere : strContains(meshName, "Flipper") ? MeshType::Convex : MeshType::TriangleList));
+		ret[ret.size()-1].Name(meshName);
 	}
 
 	return ret;
@@ -204,7 +206,7 @@ void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, 
 	mIndices = indices;
 
 	// Find sphere radius from vertices
-	if (meshType == MeshType::Sphere)
+	if (meshType == MeshType::Sphere || meshType == MeshType::Box)
 	{
 		float maxX = 0.f;
 

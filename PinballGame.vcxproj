@@ -215,7 +215,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
-    <ClCompile Include="src\ModelImporter.cpp" />
+    <ClCompile Include="src\Util.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -226,11 +226,11 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     <None Include="res\GLSL\Unlit.vert" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="3rdparty\OBJ_Loader.h" />
     <ClInclude Include="src\GameObject.h" />
+    <ClInclude Include="src\Light.h" />
     <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\Middleware.h" />
-    <ClInclude Include="src\ModelImporter.h" />
+    <ClInclude Include="src\Util.h" />
     <ClInclude Include="src\Vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
