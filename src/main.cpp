@@ -300,8 +300,7 @@ int main(int* argc, char** argv)
 	Pinball::GameObject ballObj;
 	std::map<std::string, Pinball::GameObject> levelObjects;
 
-	physx::PxSphericalJoint* flipperJointL = nullptr;
-	physx::PxRevoluteJoint* flipperJointR = nullptr;
+	physx::PxSphericalJoint* flipperJointL = nullptr, *flipperJointR = nullptr;
 
 	// Create game objects
 	for (size_t i = 0; i < levelMeshes.size(); i++)
@@ -361,14 +360,16 @@ int main(int* argc, char** argv)
 		((physx::PxRigidActor*)(boxObj.GetPxActor())), physx::PxTransform(physx::PxIdentity)
 	);*/
 
-	flipperJointR = physx::PxRevoluteJointCreate(*pxPhysics,
+	flipperJointR = physx::PxSphericalJointCreate(*pxPhysics,
 		(physx::PxRigidActor*)levelObjects["HingeR"].GetPxActor(), physx::PxTransform(-1.0f * (levelObjects["HingeR"].Transform().p - levelObjects["FlipperR"].Transform().p)),
 		(physx::PxRigidActor*)levelObjects["FlipperR"].GetPxActor(), physx::PxTransform(physx::PxIdentity));
+	levelObjects["FlipperR"].GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+	((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperR"].Geometry().GetCenterPoint() * 2.0f));
 		
 	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
 	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
 
-	scene->addActor(*boxObj.GetPxActor());
+	//scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
@@ -484,7 +485,11 @@ int main(int* argc, char** argv)
 
 		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 		{
-			((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->addForce(physx::PxVec3(0.f, 00.f, 20.f));
+			((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setLinearVelocity(physx::PxVec3(-1.5f, 0.f, -1.f) * 50.f);
+		}
+		else
+		{
+			((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setLinearVelocity(physx::PxVec3(1.5f, 0.f, -1.f) * -50.f);
 		}
 
 		if (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
