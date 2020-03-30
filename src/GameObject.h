@@ -2,8 +2,10 @@
 
 #include "Mesh.h"
 
-namespace Pinball {
-	class GameObject {
+namespace Pinball
+{
+	class GameObject
+	{
 	private:
 		Mesh mMesh;
 

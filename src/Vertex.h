@@ -1,6 +1,7 @@
 #pragma once
 
-namespace Pinball {
+namespace Pinball
+{
 	// Vertex format:
 	// position: 3*float
 	// normals: 3*float

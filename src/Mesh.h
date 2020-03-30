@@ -5,8 +5,10 @@
 #include <vector>
 #include <3rdparty/tiny_obj_loader.h>
 
-namespace Pinball {
-	class Mesh {
+namespace Pinball
+{
+	class Mesh
+	{
 	private:
 		std::vector<Vertex> mVertices;
 		std::vector<Vertex> mAllVerts;

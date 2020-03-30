@@ -1,7 +1,9 @@
 #pragma once
 #include <glm/vec3.hpp>
-namespace Pinball {
-	class Light {
+namespace Pinball
+{
+	class Light
+	{
 		public:
 			float kc = 1.0f, kl = 0.09f, kq = 0.032f;
 			glm::vec3 color;

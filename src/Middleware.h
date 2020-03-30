@@ -2,7 +2,8 @@ namespace Pinball
 {
 	namespace Middleware
 	{
-		struct UserData {
+		struct UserData
+		{
 			bool isTrigger;
 			bool isCollider;
 		};
