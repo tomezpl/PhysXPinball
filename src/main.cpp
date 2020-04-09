@@ -56,7 +56,7 @@ public:
 		//check all pairs
 		for (physx::PxU32 i = 0; i < nbPairs; i++)
 		{
-			if (static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[0]->getActor()->userData)->isCollider && static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[1]->getActor()->userData)->isCollider)
+			//if (static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[0]->getActor()->userData)->isCollider && static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[1]->getActor()->userData)->isCollider)
 			{
 				//check eNOTIFY_TOUCH_FOUND
 				if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
@@ -79,6 +79,60 @@ public:
 	virtual void onAdvance(const physx::PxRigidBody * const* bodyBuffer, const physx::PxTransform * poseBuffer, const physx::PxU32 count) {}
 #endif
 };
+
+physx::PxFilterFlags MyFilterShader(
+	/* Object A: */ physx::PxFilterObjectAttributes attribs0, physx::PxFilterData filterData0,
+	/* Object B: */ physx::PxFilterObjectAttributes attribs1, physx::PxFilterData filterData1,
+	physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSz)
+{
+	// Prevent trigger collision
+	if (physx::PxFilterObjectIsTrigger(attribs0) || physx::PxFilterObjectIsTrigger(attribs1))
+	{
+		pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
+		return physx::PxFilterFlag::eDEFAULT;
+	}
+
+	// Both objects need to contain each other's IDs in their filtermasks in order for a contact callback to be triggered.
+	if ((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
+	{
+		// If not a trigger, then generate contact response
+		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
+		pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
+	}
+
+	return physx::PxFilterFlag::eDEFAULT;
+}
+
+struct FilterGroup
+{
+	enum Enum
+	{
+		eBALL = (1 << 0),
+		eFLIPPER = (1 << 1),
+		eTABLE = (1 << 2),
+	};
+};
+
+void setupFiltering(physx::PxRigidActor* actor, physx::PxU32 filterGroup, physx::PxU32 filterMask)
+{
+	physx::PxFilterData filterData;
+	filterData.word0 = filterGroup; // the FilterGroup this object identifies with
+	filterData.word1 = filterMask; // the FilterGroup this object needs to collide with
+
+	const physx::PxU32 numShapes = actor->getNbShapes();
+	physx::PxShape** shapes = new physx::PxShape*[numShapes];
+
+	actor->getShapes(shapes, numShapes);
+
+	// Set this filter data for all shapes of this object
+	for (int i = 0; i < numShapes; i++)
+	{
+		physx::PxShape* shape = shapes[i];
+		shape->setSimulationFilterData(filterData);
+	}
+
+	delete[] shapes;
+}
 
 int main(int* argc, char** argv)
 {
@@ -117,7 +171,7 @@ int main(int* argc, char** argv)
 
 	physx::PxSceneDesc sceneDesc = physx::PxSceneDesc(physx::PxTolerancesScale());
 	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 9.81f);
-	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
+	sceneDesc.filterShader = MyFilterShader;
 	sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
 	physx::PxScene* scene = PxGetPhysics().createScene(sceneDesc);
 	scene->setSimulationEventCallback(new MySimulationEventCallback());
@@ -150,11 +204,6 @@ int main(int* argc, char** argv)
 			//objToAssignMesh = &ballObj;
 		}
 
-		if (strContains(levelMeshes[i].Name(), "Table"))
-		{
-			//objToAssignMesh = &tableObj;
-		}
-
 		if (objToAssignMesh == nullptr)
 		{
 			levelObjects[levelMeshes[i].Name()] = (Pinball::GameObject());
@@ -165,32 +214,54 @@ int main(int* argc, char** argv)
 		{
 			objToAssignMesh->Geometry(levelMeshes[i], objectType);
 			objToAssignMesh->Transform(physx::PxTransform(levelOrigins[i].GetCenterPoint(), physx::PxQuat(physx::PxIdentity)));
-			scene->addActor(*objToAssignMesh->GetPxActor());
+			//if (!strContains(levelMeshes[i].Name(), "Table"))
+			//{
+				scene->addActor(*objToAssignMesh->GetPxActor());
+			//}
 			objToAssignMesh->Geometry().Color(0.5f, 0.5f, 0.5f);
+			//setupFiltering((physx::PxRigidActor*)objToAssignMesh->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
 			/*if (strContains(levelMeshes[i].Name(), "Table"))
 			{
 				objToAssignMesh->Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f)));
 			}*/
+			objToAssignMesh->Name(levelMeshes[i].Name());
 		}
 	}
 
 	((physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor());
 
+	physx::PxVec3 hingeLocation = levelObjects["HingeL"].Transform().p + (levelObjects["FlipperL"].Transform().p - levelObjects["HingeL"].Transform().p) * 0.9;
+	
+	hingeLocation = levelObjects["FlipperL"].Transform().p; 
+	//((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setMass(1.f);
+	//((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
+
+	boxObj.Transform(physx::PxTransform(hingeLocation));
+
+	//levelObjects["FlipperL"].Transform(physx::PxTransform(physx::PxIdentity));
+
 	flipperJointL = physx::PxSphericalJointCreate(*pxPhysics,
-		(physx::PxRigidActor*)levelObjects["HingeL"].GetPxActor(), physx::PxTransform((levelObjects["FlipperL"].Transform().p - levelObjects["HingeL"].Transform().p)),
-		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(physx::PxIdentity) /*physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * -2.0f)*/);
+		(physx::PxRigidActor*)levelObjects["HingeL"].GetPxActor(), physx::PxTransform(hingeLocation - levelObjects["HingeL"].Transform().p),
+		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(physx::PxVec3(0.0f)) /*physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * -2.0f)*/);
+
+
+	//flipperJointL->setLimit(physx::PxJointAngularLimitPair(-physx::PxPi / 4, physx::PxPi / 4));
+	//flipperJointL->setRevoluteJointFlag(physx::PxRevoluteJointFlag::eLIMIT_ENABLED, true);
 
 	//flipperJointL->setDriveVelocity(1.0f);
 	levelObjects["FlipperL"].GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	boxObj.GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
-	((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 2.0f));
+	//((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 2.0f));
 	scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 1.0f);
-	scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
+	scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS, 1.0f); 
 	flipperJointL->setConstraintFlag(physx::PxConstraintFlag::eVISUALIZATION, true);
 	//flipperJointL->setRevoluteJointFlag(physx::PxRevoluteJointFlag::eDRIVE_ENABLED, true);
 	//flipperJointL->setRevoluteJointFlag(physx::PxRevoluteJointFlag::eDRIVE_FREESPIN, true);
 
-	boxObj.Transform(physx::PxTransform(levelObjects["FlipperL"].Transform().p + levelObjects["FlipperL"].Geometry().GetCenterPoint() * 3.f, physx::PxQuat(physx::PxIdentity)));
+	flipperJointL->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
+	flipperJointL->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
+
+	//boxObj.Transform(physx::PxTransform(levelObjects["FlipperL"].Transform().p + levelObjects["FlipperL"].Geometry().GetCenterPoint() * 3.f, physx::PxQuat(physx::PxIdentity)));
 
 	/*physx::PxRevoluteJoint* flipperJointLPointer = physx::PxRevoluteJointCreate(*pxPhysics,
 		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 3.0f),
@@ -203,6 +274,15 @@ int main(int* argc, char** argv)
 	levelObjects["FlipperR"].GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperR"].Geometry().GetCenterPoint() * 2.0f));
 		
+	setupFiltering((physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)levelObjects["FlipperR"].GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)levelObjects["HingeL"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)levelObjects["HingeR"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+
+	setupFiltering((physx::PxRigidActor*)levelObjects["Ball"].GetPxActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER);
+	setupFiltering((physx::PxRigidActor*)levelObjects["Ramp"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)levelObjects["Table"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+
 	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
 	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
 
@@ -265,12 +345,12 @@ int main(int* argc, char** argv)
 		{
 			//((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(-20.f, 0.0f, 0.0f));
 			//physx::PxRigidBodyExt::addForceAtLocalPos(*(physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor(), physx::PxVec3(-1.f, -1.f, 2.f) * 100.f, levelObjects["FlipperL"].Geometry().GetCenterPoint() * 1.f);
-			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setLinearVelocity(physx::PxVec3(1.5f, 0.f, -1.f)*50.f);
+			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f)* 50.f);
 			//((physx::PxRigidDynamic*)boxObj.GetPxActor())->addForce(physx::PxVec3(0.f, 1.f, -2.f) * 200);
 		}
 		else
 		{
-			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setLinearVelocity(physx::PxVec3(-1.5f, 0.f, -1.f) * -50.f);
+			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, -1.f, 0.f) * 25.f);
 		}
 
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_DOWN) == GLFW_PRESS)

@@ -10,6 +10,7 @@ bool GameObject::_CreatedMat = false;
 GameObject::GameObject()
 {
 	mActor = nullptr;
+	mName = "";
 
 	if (!_CreatedMat)
 	{
@@ -18,9 +19,10 @@ GameObject::GameObject()
 	}
 }
 
-GameObject::GameObject(Mesh geometry, GameObject::Type type, GameObject::ColliderType colliderType)
+GameObject::GameObject(Mesh geometry, GameObject::Type type, std::string name, GameObject::ColliderType colliderType)
 {
 	mActor = nullptr;
+	mName = name;
 
 	if (!_CreatedMat)
 	{
@@ -40,7 +42,7 @@ void GameObject::Geometry(Mesh mesh, GameObject::Type type, GameObject::Collider
 {
 	mMesh = mesh;
 
-	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *_Mat) }; // TODO: won't this cause a memory leak on reinitialisation?
+	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *_Mat, true) }; // TODO: won't this cause a memory leak on reinitialisation?
 
 	if (mMesh.GetMeshType() == Mesh::MeshType::Plane)
 	{
@@ -72,11 +74,24 @@ void GameObject::Geometry(Mesh mesh, GameObject::Type type, GameObject::Collider
 	userData->isCollider = colliderType == ColliderType::Collider || ColliderType::ColliderTrigger;
 
 	mActor->userData = userData;
+
+	mActor->setName(mName.c_str());
 }
 
 physx::PxActor* GameObject::GetPxActor()
 {
 	return mActor;
+}
+
+std::string GameObject::Name()
+{
+	return mName;
+}
+
+void GameObject::Name(std::string name)
+{
+	mName = name;
+	mActor->setName(name.c_str());
 }
 
 physx::PxTransform GameObject::Transform()
