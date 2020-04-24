@@ -214,6 +214,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
   <ItemGroup>
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
+    <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
@@ -230,6 +231,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
   <ItemGroup>
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\GameObject.h" />
+    <ClInclude Include="src\Level.h" />
     <ClInclude Include="src\Light.h" />
     <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\Middleware.h" />

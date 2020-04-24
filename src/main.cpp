@@ -9,6 +9,7 @@
 
 // Game engine & PhysX
 #include "GameObject.h"
+#include "Level.h"
 #include "Middleware.h"
 #include "Light.h"
 #include "Renderer.h"
@@ -193,63 +194,30 @@ int main(int* argc, char** argv)
 
 	physx::PxSphericalJoint* flipperJointL = nullptr, *flipperJointR = nullptr;
 
-	// Create game objects
-	for (size_t i = 0; i < levelMeshes.size(); i++)
-	{
-		Pinball::GameObject::Type objectType = Pinball::GameObject::Static;
-		Pinball::GameObject* objToAssignMesh = nullptr;
-		if (strContains("BallFlipperLFlipperR", levelMeshes[i].Name()))
-		{
-			objectType = Pinball::GameObject::Dynamic;
-			//objToAssignMesh = &ballObj;
-		}
+	Pinball::Level level("Models/level_meshes.obj", "Models/level_origins.obj", cooking);
 
-		if (objToAssignMesh == nullptr)
-		{
-			levelObjects[levelMeshes[i].Name()] = (Pinball::GameObject());
-			objToAssignMesh = &levelObjects[levelMeshes[i].Name()];
-		}
-
-		if (objToAssignMesh != nullptr)
-		{
-			objToAssignMesh->Geometry(levelMeshes[i], objectType);
-			objToAssignMesh->Transform(physx::PxTransform(levelOrigins[i].GetCenterPoint(), physx::PxQuat(physx::PxIdentity)));
-			//if (!strContains(levelMeshes[i].Name(), "Table"))
-			//{
-				scene->addActor(*objToAssignMesh->GetPxActor());
-			//}
-			objToAssignMesh->Geometry().Color(0.5f, 0.5f, 0.5f);
-			//setupFiltering((physx::PxRigidActor*)objToAssignMesh->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-			/*if (strContains(levelMeshes[i].Name(), "Table"))
-			{
-				objToAssignMesh->Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f)));
-			}*/
-			objToAssignMesh->Name(levelMeshes[i].Name());
-		}
-	}
-
-	((physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor());
-
-	physx::PxVec3 hingeLocation = levelObjects["HingeL"].Transform().p + (levelObjects["FlipperL"].Transform().p - levelObjects["HingeL"].Transform().p) * 0.9;
+	physx::PxVec3 hingeLocation = level.HingeL()->Transform().p + (level.FlipperR()->Transform().p - level.HingeL()->Transform().p) * 0.9;
 	
-	hingeLocation = levelObjects["FlipperL"].Transform().p; 
-	//((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setMass(1.f);
-	//((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
+	hingeLocation = level.FlipperL()->Transform().p;
+	((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setMass(0.f);
+	((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setMass(0.f);
+	((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
+	((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
 
 	boxObj.Transform(physx::PxTransform(hingeLocation));
 
 	//levelObjects["FlipperL"].Transform(physx::PxTransform(physx::PxIdentity));
 
 	flipperJointL = physx::PxSphericalJointCreate(*pxPhysics,
-		(physx::PxRigidActor*)levelObjects["HingeL"].GetPxActor(), physx::PxTransform(hingeLocation - levelObjects["HingeL"].Transform().p),
-		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(physx::PxVec3(0.0f)) /*physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * -2.0f)*/);
+		(physx::PxRigidActor*)level.HingeL()->GetPxActor(), physx::PxTransform(hingeLocation - level.HingeL()->Transform().p),
+		(physx::PxRigidActor*)level.FlipperL()->GetPxActor(), physx::PxTransform(physx::PxVec3(0.0f)));
 
 
 	//flipperJointL->setLimit(physx::PxJointAngularLimitPair(-physx::PxPi / 4, physx::PxPi / 4));
 	//flipperJointL->setRevoluteJointFlag(physx::PxRevoluteJointFlag::eLIMIT_ENABLED, true);
 
 	//flipperJointL->setDriveVelocity(1.0f);
-	levelObjects["FlipperL"].GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+	level.FlipperL()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	boxObj.GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	//((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 2.0f));
 	scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 1.0f);
@@ -267,27 +235,33 @@ int main(int* argc, char** argv)
 		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 3.0f),
 		((physx::PxRigidActor*)(boxObj.GetPxActor())), physx::PxTransform(physx::PxIdentity)
 	);*/
+	hingeLocation = level.FlipperR()->Transform().p;
 
 	flipperJointR = physx::PxSphericalJointCreate(*pxPhysics,
-		(physx::PxRigidActor*)levelObjects["HingeR"].GetPxActor(), physx::PxTransform(-1.0f * (levelObjects["HingeR"].Transform().p - levelObjects["FlipperR"].Transform().p)),
-		(physx::PxRigidActor*)levelObjects["FlipperR"].GetPxActor(), physx::PxTransform(physx::PxIdentity));
-	levelObjects["FlipperR"].GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
-	((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperR"].Geometry().GetCenterPoint() * 2.0f));
-		
-	setupFiltering((physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)levelObjects["FlipperR"].GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)levelObjects["HingeL"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)levelObjects["HingeR"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+		(physx::PxRigidActor*)level.HingeR()->GetPxActor(), physx::PxTransform(hingeLocation - level.HingeR()->Transform().p),
+		(physx::PxRigidActor*)level.FlipperR()->GetPxActor(), physx::PxTransform(physx::PxVec3(0.0f)));
+	level.FlipperR()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+	//((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperR"].Geometry().GetCenterPoint() * 2.0f));
 
-	setupFiltering((physx::PxRigidActor*)levelObjects["Ball"].GetPxActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER);
-	setupFiltering((physx::PxRigidActor*)levelObjects["Ramp"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)levelObjects["Table"].GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+
+	flipperJointR->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
+	flipperJointR->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
+
+	setupFiltering((physx::PxRigidActor*)level.FlipperL()->GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)level.FlipperR()->GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)level.HingeL()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)level.HingeR()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+
+	setupFiltering((physx::PxRigidActor*)level.Ball()->GetPxActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER);
+	setupFiltering((physx::PxRigidActor*)level.Ramp()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering((physx::PxRigidActor*)level.Table()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
 
 	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
 	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
 
 	//scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
+	scene->addActors(level.AllActors(), level.NbActors());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
 	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
@@ -336,35 +310,25 @@ int main(int* argc, char** argv)
 			paused = !paused;
 		}
 
-		if (glfwGetKey(gfx.Window(), GLFW_KEY_UP) == GLFW_PRESS)
-		{
-			((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, -20.0f));
-		}
-
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_LEFT) == GLFW_PRESS)
 		{
 			//((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(-20.f, 0.0f, 0.0f));
 			//physx::PxRigidBodyExt::addForceAtLocalPos(*(physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor(), physx::PxVec3(-1.f, -1.f, 2.f) * 100.f, levelObjects["FlipperL"].Geometry().GetCenterPoint() * 1.f);
-			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f)* 50.f);
+			((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f)* 50.f);
 			//((physx::PxRigidDynamic*)boxObj.GetPxActor())->addForce(physx::PxVec3(0.f, 1.f, -2.f) * 200);
 		}
 		else
 		{
-			((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, -1.f, 0.f) * 25.f);
-		}
-
-		if (glfwGetKey(gfx.Window(), GLFW_KEY_DOWN) == GLFW_PRESS)
-		{
-			((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, 10.0f));
+			((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, -1.f, 0.f) * 25.f);
 		}
 
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT) == GLFW_PRESS)
 		{
-			((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setLinearVelocity(physx::PxVec3(-1.5f, 0.f, -1.f) * 50.f);
+			((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f) * -50.f);
 		}
 		else
 		{
-			((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setLinearVelocity(physx::PxVec3(1.5f, 0.f, -1.f) * -50.f);
+			((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, 1.f, 0.f) * 25.f);
 		}
 
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
@@ -374,7 +338,7 @@ int main(int* argc, char** argv)
 		}
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT_SHIFT) == GLFW_RELEASE && buildUp)
 		{
-			((physx::PxRigidDynamic*)levelObjects["Ball"].GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, -launchStrength));
+			((physx::PxRigidDynamic*)level.Ball()->GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, -launchStrength));
 			launchStrength = 0.0f;
 			buildUp = false;
 		}
@@ -392,17 +356,17 @@ int main(int* argc, char** argv)
 		}
 
 		// Attach light to ball
-		physx::PxVec3 bp = levelObjects["Ball"].Transform().p;
+		physx::PxVec3 bp = level.Ball()->Transform().p;
 		lights[1].pointPos = glm::vec3(bp.x, bp.y + 10.0f, bp.z);
 
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		gfx.Draw(boxObj, cam, lights, &diffuseShader);
-		for (std::map<std::string, Pinball::GameObject>::iterator it = levelObjects.begin(); it != levelObjects.end(); it++)
+		//gfx.Draw(boxObj, cam, lights, &diffuseShader);
+		for (size_t i = 0; i < level.NbActors(); i++)
 		{
-			gfx.Draw(it->second, cam, lights, &diffuseShader);
+			gfx.Draw(*level.At(i), cam, lights, &diffuseShader);
 		}
 		//gfx.Draw(planeObj, cam, lights, &unlitShader);
 		//drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, unlitShader);

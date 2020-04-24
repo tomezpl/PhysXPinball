@@ -154,7 +154,7 @@ std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking
 
 		std::string meshName = std::string(scene->mRootNode->mChildren[i]->mName.C_Str());
 		meshName = meshName.substr(0, meshName.find_last_of("_"));
-		ret.push_back(Mesh(vertices, cooking, indices, meshName == "Ball" ? MeshType::Sphere : strContains(meshName, "Flipper") ? MeshType::Convex : MeshType::TriangleList));
+		ret.push_back(Mesh(vertices, cooking, indices, meshName == "Ball" ? MeshType::Sphere : strContains(meshName, "Flipper") ? MeshType::Convex : MeshType::TriangleList, updatePx));
 		ret[ret.size()-1].Name(meshName);
 	}
 
