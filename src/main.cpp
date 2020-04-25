@@ -147,13 +147,6 @@ int main(int* argc, char** argv)
 
 	bool running = true;
 
-	// Vertices for a triangle
-	std::vector<float> verts = {
-		-0.5f, -0.5f, 1.f, // bottom-left
-		0.5f, -0.5f, 1.f, // bottom-right
-		0.0f, 0.5f, 1.f // top
-	};
-
 	// PhysX
 	physx::PxDefaultAllocator pxAlloc;
 	physx::PxDefaultErrorCallback pxErrClb;
@@ -209,8 +202,8 @@ int main(int* argc, char** argv)
 	//levelObjects["FlipperL"].Transform(physx::PxTransform(physx::PxIdentity));
 
 	flipperJointL = physx::PxSphericalJointCreate(*pxPhysics,
-		(physx::PxRigidActor*)level.HingeL()->GetPxActor(), physx::PxTransform(hingeLocation - level.HingeL()->Transform().p),
-		(physx::PxRigidActor*)level.FlipperL()->GetPxActor(), physx::PxTransform(physx::PxVec3(0.0f)));
+		level.HingeL()->GetPxRigidActor(), physx::PxTransform(hingeLocation - level.HingeL()->Transform().p),
+		level.FlipperL()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
 
 
 	//flipperJointL->setLimit(physx::PxJointAngularLimitPair(-physx::PxPi / 4, physx::PxPi / 4));
@@ -238,8 +231,8 @@ int main(int* argc, char** argv)
 	hingeLocation = level.FlipperR()->Transform().p;
 
 	flipperJointR = physx::PxSphericalJointCreate(*pxPhysics,
-		(physx::PxRigidActor*)level.HingeR()->GetPxActor(), physx::PxTransform(hingeLocation - level.HingeR()->Transform().p),
-		(physx::PxRigidActor*)level.FlipperR()->GetPxActor(), physx::PxTransform(physx::PxVec3(0.0f)));
+		level.HingeR()->GetPxRigidActor(), physx::PxTransform(hingeLocation - level.HingeR()->Transform().p),
+		level.FlipperR()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
 	level.FlipperR()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	//((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperR"].Geometry().GetCenterPoint() * 2.0f));
 
@@ -247,14 +240,14 @@ int main(int* argc, char** argv)
 	flipperJointR->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
 	flipperJointR->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
 
-	setupFiltering((physx::PxRigidActor*)level.FlipperL()->GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)level.FlipperR()->GetPxActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)level.HingeL()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)level.HingeR()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(level.FlipperL()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering(level.FlipperR()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering(level.HingeL()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(level.HingeR()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
 
-	setupFiltering((physx::PxRigidActor*)level.Ball()->GetPxActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER);
-	setupFiltering((physx::PxRigidActor*)level.Ramp()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering((physx::PxRigidActor*)level.Table()->GetPxActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(level.Ball()->GetPxRigidActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER);
+	setupFiltering(level.Ramp()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(level.Table()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
 
 	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
 	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
