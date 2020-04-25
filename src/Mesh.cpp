@@ -197,6 +197,11 @@ float* Mesh::GetData()
 	return ret;
 }
 
+std::vector<Vertex> Mesh::GetDataVector()
+{
+	return mVertices;
+}
+
 // Assigns the vertex buffer and creates a convex PhysX mesh
 void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, std::vector<unsigned int> indices, Mesh::MeshType meshType, bool updatePx)
 {
@@ -339,9 +344,11 @@ void Mesh::UpdatePx(physx::PxCooking* cooking)
 		return;
 	case MeshType::Plane:
 		mPxGeometry = new physx::PxPlaneGeometry();
+		std::cout << "Created a PxPlane successfully." << std::endl;
 		return;
 	case MeshType::Sphere:
 		mPxGeometry = new physx::PxSphereGeometry(mPrimitiveHx.x);
+		std::cout << "Created a PxSphereMesh successfully." << std::endl;
 		return;
 	}
 }
@@ -372,6 +379,11 @@ bool Mesh::IsIndexed()
 unsigned int* Mesh::GetIndices()
 {
 	return mIndices.data();
+}
+
+std::vector<unsigned int> Mesh::GetIndexVector()
+{
+	return mIndices;
 }
 
 std::vector<Vertex> Mesh::reverseIndexing(std::vector<Vertex> vertices, std::vector<unsigned int> indices)

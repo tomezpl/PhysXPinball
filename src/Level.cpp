@@ -153,6 +153,7 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 			if (strContains(meshName, "Ball"))
 			{
 				objToAssign = mBall;
+				meshes[i].SetVertices(meshes[i].GetDataVector(), cooking, meshes[i].GetIndexVector(), Mesh::MeshType::Sphere);
 			}
 			else if (strContains(meshName, "FlipperL"))
 			{

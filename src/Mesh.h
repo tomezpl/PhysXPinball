@@ -35,8 +35,10 @@ namespace Pinball
 		size_t GetIndexCount();
 		bool IsIndexed();
 		unsigned int* GetIndices();
+		std::vector<unsigned int> GetIndexVector();
 
 		float* GetData();
+		std::vector<Vertex> GetDataVector();
 		size_t GetCount();
 		int GetMeshType();
 		physx::PxGeometry* GetPxGeometry();
