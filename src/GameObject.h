@@ -26,6 +26,7 @@ namespace Pinball
 		Mesh Geometry();
 		void Geometry(Mesh mesh, Type actorType = Type::Dynamic, ColliderType colliderType = ColliderType::Collider);
 		physx::PxActor* GetPxActor();
+		physx::PxRigidActor* GetPxRigidActor();
 		std::string Name();
 		void Name(std::string name);
 		physx::PxTransform Transform();

@@ -83,6 +83,11 @@ physx::PxActor* GameObject::GetPxActor()
 	return mActor;
 }
 
+physx::PxRigidActor* GameObject::GetPxRigidActor()
+{
+	return (physx::PxRigidActor*)mActor;
+}
+
 std::string GameObject::Name()
 {
 	return mName;
@@ -91,7 +96,14 @@ std::string GameObject::Name()
 void GameObject::Name(std::string name)
 {
 	mName = name;
-	mActor->setName(name.c_str());
+
+	// TODO: this might lead to small memory leaks
+	const char* cName = new const char[name.length() + 1];
+	memcpy((void*)cName, name.c_str(), name.length() * sizeof(const char));
+	const char nullTerminator = '\0';
+	memcpy((void*)(cName + name.length()), &nullTerminator, sizeof(const char));
+
+	mActor->setName(cName);
 }
 
 physx::PxTransform GameObject::Transform()
