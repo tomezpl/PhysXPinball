@@ -15,6 +15,12 @@
 #include "Renderer.h"
 #include "Util.h"
 
+Pinball::Level* gLevel = nullptr;
+struct
+{
+	bool notifyLoss = false;
+} gGameState;
+
 ///A customised collision class, implemneting various callbacks
 class MySimulationEventCallback : public physx::PxSimulationEventCallback
 {
@@ -53,6 +59,30 @@ public:
 	virtual void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
 	{
 		std::cerr << "Contact found between " << pairHeader.actors[0]->getName() << " " << pairHeader.actors[1]->getName() << std::endl;
+
+		// Check for collision with bottom of the table
+		bool ballFound = false;
+		bool tableFound = false;
+		physx::PxVec3 ballPos;
+		if (strContains(pairHeader.actors[0]->getName(), "Ball") || strContains(pairHeader.actors[1]->getName(), "Ball"))
+		{
+			ballFound = true;
+		}
+		if (strContains(pairHeader.actors[0]->getName(), "Table") || strContains(pairHeader.actors[1]->getName(), "Table"))
+		{
+			tableFound = true;
+		}
+
+		std::cout << "ballFound: " << (!ballFound ? "false" : "true") << ", tableFound: " << (!tableFound ? "false" : "true") << std::endl;
+		if (ballFound && tableFound)
+		{
+			ballPos = gLevel->Ball()->Transform().p;
+			std::cout << "ballZ: " << ballPos.z << ", FlipperL.Z: " << gLevel->FlipperL()->Transform().p.z << std::endl;
+			if (ballPos.z > gLevel->FlipperL()->Transform().p.z)
+			{
+				gGameState.notifyLoss = true;
+			}
+		}
 
 		//check all pairs
 		for (physx::PxU32 i = 0; i < nbPairs; i++)
@@ -111,6 +141,7 @@ struct FilterGroup
 		eBALL = (1 << 0),
 		eFLIPPER = (1 << 1),
 		eTABLE = (1 << 2),
+		eFLOOR = (1 << 3),
 	};
 };
 
@@ -187,30 +218,30 @@ int main(int* argc, char** argv)
 
 	physx::PxSphericalJoint* flipperJointL = nullptr, *flipperJointR = nullptr;
 
-	Pinball::Level level("Models/level_meshes.obj", "Models/level_origins.obj", cooking);
+	gLevel = new Pinball::Level("Models/level_meshes.obj", "Models/level_origins.obj", cooking);
 
-	physx::PxVec3 hingeLocation = level.HingeL()->Transform().p + (level.FlipperR()->Transform().p - level.HingeL()->Transform().p) * 0.9;
+	physx::PxVec3 hingeLocation = gLevel->HingeL()->Transform().p + (gLevel->FlipperR()->Transform().p - gLevel->HingeL()->Transform().p) * 0.9;
 	
-	hingeLocation = level.FlipperL()->Transform().p;
-	((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setMass(0.f);
-	((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setMass(0.f);
-	((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
-	((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
+	hingeLocation = gLevel->FlipperL()->Transform().p;
+	((physx::PxRigidDynamic*)gLevel->FlipperL()->GetPxActor())->setMass(0.f);
+	((physx::PxRigidDynamic*)gLevel->FlipperR()->GetPxActor())->setMass(0.f);
+	((physx::PxRigidDynamic*)gLevel->FlipperL()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
+	((physx::PxRigidDynamic*)gLevel->FlipperR()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
 
 	boxObj.Transform(physx::PxTransform(hingeLocation));
 
 	//levelObjects["FlipperL"].Transform(physx::PxTransform(physx::PxIdentity));
 
 	flipperJointL = physx::PxSphericalJointCreate(*pxPhysics,
-		level.HingeL()->GetPxRigidActor(), physx::PxTransform(hingeLocation - level.HingeL()->Transform().p),
-		level.FlipperL()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
+		gLevel->HingeL()->GetPxRigidActor(), physx::PxTransform(hingeLocation - gLevel->HingeL()->Transform().p),
+		gLevel->FlipperL()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
 
 
 	//flipperJointL->setLimit(physx::PxJointAngularLimitPair(-physx::PxPi / 4, physx::PxPi / 4));
 	//flipperJointL->setRevoluteJointFlag(physx::PxRevoluteJointFlag::eLIMIT_ENABLED, true);
 
 	//flipperJointL->setDriveVelocity(1.0f);
-	level.FlipperL()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+	gLevel->FlipperL()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	boxObj.GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	//((physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 2.0f));
 	scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 1.0f);
@@ -228,33 +259,34 @@ int main(int* argc, char** argv)
 		(physx::PxRigidActor*)levelObjects["FlipperL"].GetPxActor(), physx::PxTransform(levelObjects["FlipperL"].Geometry().GetCenterPoint() * 3.0f),
 		((physx::PxRigidActor*)(boxObj.GetPxActor())), physx::PxTransform(physx::PxIdentity)
 	);*/
-	hingeLocation = level.FlipperR()->Transform().p;
+	hingeLocation = gLevel->FlipperR()->Transform().p;
 
 	flipperJointR = physx::PxSphericalJointCreate(*pxPhysics,
-		level.HingeR()->GetPxRigidActor(), physx::PxTransform(hingeLocation - level.HingeR()->Transform().p),
-		level.FlipperR()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
-	level.FlipperR()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+		gLevel->HingeR()->GetPxRigidActor(), physx::PxTransform(hingeLocation - gLevel->HingeR()->Transform().p),
+		gLevel->FlipperR()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
+	gLevel->FlipperR()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 	//((physx::PxRigidDynamic*)levelObjects["FlipperR"].GetPxActor())->setCMassLocalPose(physx::PxTransform(levelObjects["FlipperR"].Geometry().GetCenterPoint() * 2.0f));
 
 
 	flipperJointR->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
 	flipperJointR->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
 
-	setupFiltering(level.FlipperL()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering(level.FlipperR()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering(level.HingeL()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering(level.HingeR()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(gLevel->FlipperL()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering(gLevel->FlipperR()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
+	setupFiltering(gLevel->HingeL()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(gLevel->HingeR()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
 
-	setupFiltering(level.Ball()->GetPxRigidActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER);
-	setupFiltering(level.Ramp()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering(level.Table()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(gLevel->Ball()->GetPxRigidActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER | FilterGroup::eFLOOR);
+	setupFiltering(gLevel->Ramp()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(gLevel->Table()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	setupFiltering(gLevel->Floor()->GetPxRigidActor(), FilterGroup::eFLOOR, FilterGroup::eBALL);
 
 	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
 	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
 
 	//scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
-	scene->addActors(level.AllActors(), level.NbActors());
+	scene->addActors(gLevel->AllActors(), gLevel->NbActors());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
 	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
@@ -307,21 +339,21 @@ int main(int* argc, char** argv)
 		{
 			//((physx::PxRigidDynamic*)ballObj.GetPxActor())->addForce(physx::PxVec3(-20.f, 0.0f, 0.0f));
 			//physx::PxRigidBodyExt::addForceAtLocalPos(*(physx::PxRigidDynamic*)levelObjects["FlipperL"].GetPxActor(), physx::PxVec3(-1.f, -1.f, 2.f) * 100.f, levelObjects["FlipperL"].Geometry().GetCenterPoint() * 1.f);
-			((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f)* 50.f);
+			((physx::PxRigidDynamic*)gLevel->FlipperL()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f)* 50.f);
 			//((physx::PxRigidDynamic*)boxObj.GetPxActor())->addForce(physx::PxVec3(0.f, 1.f, -2.f) * 200);
 		}
 		else
 		{
-			((physx::PxRigidDynamic*)level.FlipperL()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, -1.f, 0.f) * 25.f);
+			((physx::PxRigidDynamic*)gLevel->FlipperL()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, -1.f, 0.f) * 25.f);
 		}
 
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT) == GLFW_PRESS)
 		{
-			((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f) * -50.f);
+			((physx::PxRigidDynamic*)gLevel->FlipperR()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.f, 1.f, 0.f) * -50.f);
 		}
 		else
 		{
-			((physx::PxRigidDynamic*)level.FlipperR()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, 1.f, 0.f) * 25.f);
+			((physx::PxRigidDynamic*)gLevel->FlipperR()->GetPxActor())->setAngularVelocity(physx::PxVec3(0.0f, 1.f, 0.f) * 25.f);
 		}
 
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
@@ -331,7 +363,7 @@ int main(int* argc, char** argv)
 		}
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT_SHIFT) == GLFW_RELEASE && buildUp)
 		{
-			((physx::PxRigidDynamic*)level.Ball()->GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, -launchStrength));
+			((physx::PxRigidDynamic*)gLevel->Ball()->GetPxActor())->addForce(physx::PxVec3(0.f, 0.0f, -launchStrength));
 			launchStrength = 0.0f;
 			buildUp = false;
 		}
@@ -348,8 +380,15 @@ int main(int* argc, char** argv)
 			scene->fetchResults(true);
 		}
 
+		// Check if ball hit bottom of table
+		if (gGameState.notifyLoss)
+		{
+			std::cout << "Game over!" << std::endl;
+			gGameState.notifyLoss = false;
+		}
+
 		// Attach light to ball
-		physx::PxVec3 bp = level.Ball()->Transform().p;
+		physx::PxVec3 bp = gLevel->Ball()->Transform().p;
 		lights[1].pointPos = glm::vec3(bp.x, bp.y + 10.0f, bp.z);
 
 		// Draw
@@ -357,9 +396,9 @@ int main(int* argc, char** argv)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//gfx.Draw(boxObj, cam, lights, &diffuseShader);
-		for (size_t i = 0; i < level.NbActors(); i++)
+		for (size_t i = 0; i < gLevel->NbActors(); i++)
 		{
-			gfx.Draw(*level.At(i), cam, lights, &diffuseShader);
+			gfx.Draw(*gLevel->At(i), cam, lights, &diffuseShader);
 		}
 		//gfx.Draw(planeObj, cam, lights, &unlitShader);
 		//drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, unlitShader);
@@ -372,6 +411,8 @@ int main(int* argc, char** argv)
 	scene->release();
 
 	PxCloseExtensions();
+
+	delete gLevel;
 
 	return 0;
 }

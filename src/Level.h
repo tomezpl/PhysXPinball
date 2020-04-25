@@ -5,12 +5,13 @@
 namespace Pinball {
 	class Level {
 	private:
-		GameObject 
+		GameObject
 			*mFlipperL, *mFlipperR, // 0 1
 			*mHingeL, *mHingeR, // 2 3
 			*mRamp, // 4
 			*mTable, // 5
-			*mBall; // 6
+			*mBall, // 6
+			*mFloor; // 7
 		void init();
 	public:
 		GameObject* const FlipperL();
@@ -20,6 +21,7 @@ namespace Pinball {
 		GameObject* const Ramp();
 		GameObject* const Table();
 		GameObject* const Ball();
+		GameObject* const Floor();
 
 		// Returns PxActors for all objects
 		// Useful for adding to scene in one call
@@ -35,5 +37,7 @@ namespace Pinball {
 		Level();
 		Level(std::string meshFilePath, std::string originFilePath, physx::PxCooking* cooking);
 		void Load(std::string meshFilePath, std::string originFilePath, physx::PxCooking* cooking);
+
+		~Level();
 	};
 }

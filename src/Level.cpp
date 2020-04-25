@@ -21,6 +21,8 @@ void Level::init()
 		mTable = new GameObject();
 	if (!mBall)
 		mBall = new GameObject();
+	if (!mFloor)
+		mFloor = new GameObject();
 }
 
 GameObject* const Level::FlipperL()
@@ -58,17 +60,23 @@ GameObject* const Level::Ball()
 	return mBall;
 }
 
+GameObject* const Level::Floor()
+{
+	return mFloor;
+}
+
 physx::PxActor* const* Level::AllActors()
 {
-	return new physx::PxActor * const [7]
+	return new physx::PxActor * const [8]
 	{
-		mFlipperL->GetPxActor(), 
-		mFlipperR->GetPxActor(), 
-		mHingeL->GetPxActor(), 
-		mHingeR->GetPxActor(), 
-		mRamp->GetPxActor(), 
-		mTable->GetPxActor(), 
-		mBall->GetPxActor()
+		mFlipperL->GetPxActor(),
+		mFlipperR->GetPxActor(),
+		mHingeL->GetPxActor(),
+		mHingeR->GetPxActor(),
+		mRamp->GetPxActor(),
+		mTable->GetPxActor(),
+		mBall->GetPxActor(),
+		mFloor->GetPxActor()
 	};
 }
 
@@ -90,6 +98,8 @@ GameObject* const Level::At(size_t i)
 		return mTable;
 	case 6:
 		return mBall;
+	case 7:
+		return mFloor;
 	default:
 		return nullptr;
 	}
@@ -113,6 +123,8 @@ physx::PxActor* const Level::ActorAt(size_t i)
 		return mTable->GetPxActor();
 	case 6:
 		return mBall->GetPxActor();
+	case 7:
+		return mFloor->GetPxActor();
 	default:
 		return nullptr;
 	}
@@ -120,7 +132,7 @@ physx::PxActor* const Level::ActorAt(size_t i)
 
 size_t Level::NbActors()
 {
-	return 7;
+	return 8;
 }
 
 Level::Level()
@@ -169,6 +181,10 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 		{
 			objToAssign = mTable;
 		}
+		else if (strContains(meshName, "Floor"))
+		{
+			objToAssign = mFloor;
+		}
 		else if (strContains(meshName, "Ramp"))
 		{
 			objToAssign = mRamp;
@@ -182,7 +198,7 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 			objToAssign = mHingeR;
 		}
 
-		if (strContains("Ball FlipperL FlipperR HingeL HingeR Table Ramp", meshName))
+		if (strContains("Ball FlipperL FlipperR HingeL HingeR Table Floor Ramp", meshName))
 		{
 			objToAssign->Geometry(meshes[i], objType);
 			objToAssign->Name(meshName);
@@ -190,4 +206,16 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 			objToAssign->Geometry().Color(0.5f, 0.5f, 0.5f);
 		}
 	}
+}
+
+Level::~Level()
+{
+	delete mFloor;
+	delete mBall;
+	delete mTable;
+	delete mRamp;
+	delete mHingeR;
+	delete mHingeL;
+	delete mFlipperR;
+	delete mFlipperL;
 }
