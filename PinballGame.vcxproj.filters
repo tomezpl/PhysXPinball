@@ -54,6 +54,12 @@
     <None Include="res\GLSL\Diffuse.vert">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\GLSL\Spark.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\GLSL\Spark.vert">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Vertex.h">

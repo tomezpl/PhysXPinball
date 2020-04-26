@@ -301,12 +301,13 @@ int main(int* argc, char** argv)
 
 	// Prepare lights
 	std::vector<Pinball::Light> lights = {
-		Pinball::Light(glm::vec3(), glm::vec3(10.0f, -5.0f, 7.5f), glm::vec3(1.0, 1.0, 1.0)), // Sun light
-		Pinball::Light(glm::vec3(0.0f, 50.0f, 0.0f), glm::vec3(), glm::vec3(1.0f, 0.0f, 0.0f)),
-		Pinball::Light(glm::vec3(12.5f, 10.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 0.0f)),
-		Pinball::Light(glm::vec3(-12.5f, 10.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 0.0f, 1.0f)),
-		Pinball::Light(glm::vec3(-12.5f, 10.0f, -10.0f), glm::vec3(), glm::vec3(0.0f, 1.0f, 1.0f)),
-		Pinball::Light(glm::vec3(12.5f, 10.0f, -10.0f), glm::vec3(), glm::vec3(0.0f, 0.0f, 1.0f))
+		Pinball::Light(glm::vec3(), glm::vec3(0.0f, -5.0f, 0.0f), glm::vec3(1.0, 1.0, 1.0)), // Sun light
+		Pinball::Light(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(), glm::vec3(1.0f, 0.0f, 0.0f)),
+		Pinball::Light(glm::vec3(12.5f, 2.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)),
+		Pinball::Light(glm::vec3(-12.5f, 2.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)),
+		Pinball::Light(glm::vec3(-12.5f, 2.0f, -10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)),
+		Pinball::Light(glm::vec3(12.5f, 2.0f, -10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)),
+		Pinball::Light(glm::vec3(0.5f, 2.0f, 0.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f))
 	};
 
 	// Sun light is a directional light, therefore it needs the direction vector
@@ -389,7 +390,7 @@ int main(int* argc, char** argv)
 
 		// Attach light to ball
 		physx::PxVec3 bp = gLevel->Ball()->Transform().p;
-		lights[1].pointPos = glm::vec3(bp.x, bp.y + 10.0f, bp.z);
+		lights[1].pointPos = glm::vec3(bp.x, bp.y + 1.0f, bp.z);
 
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);

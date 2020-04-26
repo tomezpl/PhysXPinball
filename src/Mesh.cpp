@@ -126,7 +126,7 @@ std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking
 	std::vector<Mesh> ret;
 
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals);
+	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{

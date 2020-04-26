@@ -14,6 +14,6 @@ void main()
 {
 	gl_Position = _Proj * _View * _Model * vec4(position, 1.0f);
 	
-	fragCoord = vec4(_Model * vec4(normal, 1.0f)).xyz;
-	normalDir = mat3(transpose(inverse(_Model))) * normal;
+	fragCoord = vec4(_Model * vec4(position, 1.0f)).xyz;
+	normalDir = normalize(mat3(transpose(inverse(_Model))) * normal);
 }
