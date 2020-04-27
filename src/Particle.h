@@ -15,6 +15,9 @@ namespace Pinball {
 		ParticleType mType;
 		bool mKill; // should this particle be deleted?
 		bool mFirstFrame; // is this the first frame of the particle's lifetime?
+
+		// Cached meshes to reuse
+		static Mesh* mSparkMesh;
 	public:
 		Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType type);
 		bool IsAlive();
@@ -22,5 +25,7 @@ namespace Pinball {
 		float LifeDuration();
 		float TimeLived();
 		void Advance(float deltaTime);
+
+		~Particle();
 	};
 }

@@ -153,6 +153,22 @@ ObjectScale& GameObject::Scale()
 	return mObjScale;
 }
 
+void GameObject::destroy()
+{
+	for (size_t i = 0; i < mShapes.size(); i++)
+	{
+		if (mShapes[i] != nullptr && mShapes[i]->isReleasable())
+		{
+			mShapes[i]->release();
+		}
+	}
+}
+
+GameObject::~GameObject()
+{
+	destroy();
+}
+
 ObjectScale::ObjectScale()
 {
 	mScale = physx::PxVec3(1.0f);

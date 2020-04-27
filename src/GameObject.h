@@ -50,6 +50,8 @@ namespace Pinball
 		// Default material
 		static physx::PxMaterial* _Mat;
 		static bool _CreatedMat;
+	protected:
+		void destroy();
 	public:
 		enum Type { Dynamic = 0, Static };
 		enum ColliderType { Trigger = 0, Collider, ColliderTrigger };
@@ -68,5 +70,7 @@ namespace Pinball
 		void SetupFiltering(unsigned int filterGroup, unsigned int filterMask);
 
 		ObjectScale& Scale();
+
+		~GameObject();
 	};
 }

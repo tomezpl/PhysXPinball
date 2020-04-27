@@ -3,6 +3,8 @@
 
 using namespace Pinball;
 
+Mesh* Particle::mSparkMesh = nullptr;
+
 Particle::Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType type)
 {
 	mType = type;
@@ -10,7 +12,11 @@ Particle::Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType
 	{
 	case ParticleType::ePARTICLE_SPARK:
 		mDuration = 0.33f;
-		Geometry(Mesh::createSphere(cooking, 0.125f));
+		if (mSparkMesh == nullptr)
+		{
+			mSparkMesh = new Mesh(Mesh::createSphere(cooking, 0.125f));
+		}
+		Geometry(*mSparkMesh);
 		SetupFiltering(FilterGroup::ePARTICLE, FilterGroup::eFLIPPER | FilterGroup::eFLOOR | FilterGroup::eTABLE);
 	}
 
@@ -55,4 +61,9 @@ void Particle::Advance(float deltaTime)
 	}
 
 	mFirstFrame = false;
+}
+
+Particle::~Particle()
+{
+	destroy();
 }
