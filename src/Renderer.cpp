@@ -47,6 +47,10 @@ void Renderer::Create(std::string name, int width, int height)
 	glDepthFunc(GL_LEQUAL);
 	glDepthRange(0.0f, 1.0f);
 
+	// Enable alpha blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	// Generate buffers
 	glGenBuffers(1, &mVBO);
 	glGenBuffers(1, &mIBO);
@@ -141,7 +145,7 @@ void Renderer::Draw(GameObject& obj, Camera cam, std::vector<Light> lights, GLui
 	delete[] sunCol;
 }
 
-void Renderer::DrawParticle(GameObject& obj, Camera cam, GLuint* shader)
+void Renderer::DrawParticle(Particle& obj, Camera cam, GLuint* shader)
 {
 	// Retrieve raw vertex & index buffers from the GameObject
 	float* verts = obj.Geometry().GetData();
@@ -175,6 +179,14 @@ void Renderer::DrawParticle(GameObject& obj, Camera cam, GLuint* shader)
 	glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_Model"), 1, false, model);
 	glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_View"), 1, false, view);
 	glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_Proj"), 1, false, proj);
+
+	// Calculate particle opacity based on its lifetime
+	float opacity = 0.0f;
+	if (obj.LifeDuration() > 0.0f)
+	{
+		opacity = std::fmax(0.f, std::fmin(1.f, 1.f - obj.TimeLived() / obj.LifeDuration()));
+	}
+	glUniform1f(glGetUniformLocation(mCurrentShader, "_Opacity"), opacity);
 
 	// Non-indexed draw call for this object's triangles
 	// Indexed draw exhibited severe flicker so all meshes are remapped to be unindexed on import (ie. contain duplicate triangles)

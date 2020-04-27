@@ -416,7 +416,7 @@ int main(int* argc, char** argv)
 		size_t nbParticles = gLevel->NbParticles();
 		for (size_t i = 0; i < nbParticles; i++)
 		{
-			gfx.Draw(*gLevel->ParticleAt(i), cam, lights, &sparkShader);
+			gfx.DrawParticle(*gLevel->ParticleAt(i), cam, &sparkShader);
 		}
 		//gfx.DrawParticle(*gLevel->Ball(), cam, &sparkShader);
 		//gfx.Draw(planeObj, cam, lights, &unlitShader);

@@ -9,7 +9,7 @@ Particle::Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType
 	switch (mType)
 	{
 	case ParticleType::ePARTICLE_SPARK:
-		mDuration = 1.0f;
+		mDuration = 0.33f;
 		Geometry(Mesh::createSphere(cooking, 0.125f));
 		SetupFiltering(FilterGroup::ePARTICLE, FilterGroup::eFLIPPER | FilterGroup::eFLOOR | FilterGroup::eTABLE);
 	}

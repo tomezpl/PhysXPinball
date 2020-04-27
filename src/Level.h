@@ -44,7 +44,7 @@ namespace Pinball {
 		physx::PxActor* const ActorAt(size_t index);
 
 		// Returns particle at specified index (keep in mind killed particles will be skipped)
-		GameObject* const ParticleAt(size_t index);
+		Particle* const ParticleAt(size_t index);
 
 		// Updates particles' state and removes them from scene if necessary
 		void UpdateParticles(float deltaTime);

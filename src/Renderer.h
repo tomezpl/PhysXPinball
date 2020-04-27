@@ -15,6 +15,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "GameObject.h"
+#include "Particle.h"
 #include "Camera.h"
 #include "Light.h"
 #include "Util.h"
@@ -49,7 +50,7 @@ namespace Pinball
 
 		void Draw(GameObject& object, Camera camera, std::vector<Light> lights, GLuint* shader = nullptr);
 
-		void DrawParticle(GameObject& object, Camera camera, GLuint* shader = nullptr);
+		void DrawParticle(Particle& object, Camera camera, GLuint* shader = nullptr);
 		
 		GLFWwindow* Window();
 

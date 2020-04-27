@@ -132,7 +132,7 @@ physx::PxActor* const Level::ActorAt(size_t i)
 	}
 }
 
-GameObject* const Level::ParticleAt(size_t index)
+Particle* const Level::ParticleAt(size_t index)
 {
 	size_t i = 0;
 	for (size_t j = 0; j < mParticles.size(); j++)
