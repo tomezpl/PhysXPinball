@@ -46,6 +46,70 @@ void Pinball::Mesh::Name(std::string name)
 	mName = name;
 }
 
+Mesh Mesh::createSphere(physx::PxCooking* cooking, float radius)
+{
+	Mesh ret;
+	ret.mPrimitiveHx = physx::PxVec3(radius);
+
+	size_t stacks = 16;
+	size_t slices = 8;
+
+	const float thetaStep = physx::PxPi / stacks;
+	const float phiStep = physx::PxTwoPi / (slices * 2);
+
+	float theta = 0.0f;
+
+	// generate vertices
+	for (size_t y = 0; y <= stacks; ++y)
+	{
+		float phi = 0.0f;
+
+		float cosTheta = physx::PxCos(theta);
+		float sinTheta = physx::PxSin(theta);
+
+		for (size_t x = 0; x <= slices * 2; ++x)
+		{
+			float cosPhi = physx::PxCos(phi);
+			float sinPhi = physx::PxSin(phi);
+
+			physx::PxVec3 p(cosPhi * sinTheta * radius, cosTheta * radius, sinPhi * sinTheta * radius);
+
+			// write vertex
+			ret.mVertices.push_back(Vertex(p.x, p.y, p.z));
+
+			phi += phiStep;
+		}
+
+		theta += thetaStep;
+	}
+
+	const int numRingQuads = 2 * slices;
+	const int numRingVerts = 2 * slices + 1;
+
+	// add faces
+	for (size_t y = 0; y < stacks; ++y)
+	{
+		for (size_t i = 0; i < numRingQuads; ++i)
+		{
+			// add a quad
+			ret.mIndices.push_back((y + 0) * numRingVerts + i);
+			ret.mIndices.push_back((y + 1) * numRingVerts + i);
+			ret.mIndices.push_back((y + 1) * numRingVerts + i + 1);
+
+			ret.mIndices.push_back((y + 1) * numRingVerts + i + 1);
+			ret.mIndices.push_back((y + 0) * numRingVerts + i + 1);
+			ret.mIndices.push_back((y + 0) * numRingVerts + i);
+		}
+	}
+
+	ret.mAllVerts = ret.reverseIndexing(ret.mVertices, ret.mIndices);
+	ret.mType = MeshType::Sphere;
+
+	ret.UpdatePx(cooking);
+
+	return ret;
+}
+
 Mesh Mesh::createBox(physx::PxCooking* cooking, float size)
 {
 	Mesh ret;

@@ -4,6 +4,37 @@
 
 namespace Pinball
 {
+	class GameObject; // forward decl
+
+	class ObjectScale
+	{
+		friend class GameObject;
+	private:
+		physx::PxVec3 mScale;
+		physx::PxMeshScale mMeshScale;
+	public:
+		ObjectScale();
+
+		float X();
+		void X(float x);
+		float Y();
+		void Y(float y);
+		float Z();
+		void Z(float z);
+	};
+
+	struct FilterGroup
+	{
+		enum Enum
+		{
+			eBALL = (1 << 0),
+			eFLIPPER = (1 << 1),
+			eTABLE = (1 << 2),
+			eFLOOR = (1 << 3),
+			ePARTICLE = (1 << 4),
+		};
+	};
+
 	class GameObject
 	{
 	private:
@@ -13,6 +44,8 @@ namespace Pinball
 		std::vector<physx::PxShape*> mShapes;
 
 		std::string mName;
+
+		ObjectScale mObjScale;
 
 		// Default material
 		static physx::PxMaterial* _Mat;
@@ -31,5 +64,9 @@ namespace Pinball
 		void Name(std::string name);
 		physx::PxTransform Transform();
 		void Transform(physx::PxTransform transform);
+
+		void SetupFiltering(unsigned int filterGroup, unsigned int filterMask);
+
+		ObjectScale& Scale();
 	};
 }

@@ -19,6 +19,10 @@ Pinball::Level* gLevel = nullptr;
 struct
 {
 	bool notifyLoss = false;
+
+	// For spawning particles upon ball contact
+	bool spawnParticles = false;
+	physx::PxVec3 newParticleOrigin = physx::PxVec3();
 } gGameState;
 
 ///A customised collision class, implemneting various callbacks
@@ -74,13 +78,33 @@ public:
 		}
 
 		std::cout << "ballFound: " << (!ballFound ? "false" : "true") << ", tableFound: " << (!tableFound ? "false" : "true") << std::endl;
-		if (ballFound && tableFound)
+		if (ballFound)
 		{
+
 			ballPos = gLevel->Ball()->Transform().p;
-			std::cout << "ballZ: " << ballPos.z << ", FlipperL.Z: " << gLevel->FlipperL()->Transform().p.z << std::endl;
-			if (ballPos.z > gLevel->FlipperL()->Transform().p.z)
+			gGameState.spawnParticles = true;
+			gGameState.newParticleOrigin = ballPos;
+			if (tableFound)
 			{
-				gGameState.notifyLoss = true;
+				std::cout << "ballZ: " << ballPos.z << ", FlipperL.Z: " << gLevel->FlipperL()->Transform().p.z << std::endl;
+				if (ballPos.z > gLevel->FlipperL()->Transform().p.z)
+				{
+					gGameState.notifyLoss = true;
+				}
+			}
+		}
+
+		const unsigned int bufferSize = 64;
+		physx::PxContactPairPoint contacts[bufferSize];
+		for (unsigned int i = 0; i < nbPairs; i++)
+		{
+			const physx::PxContactPair& cp = pairs[i];
+
+			unsigned int nbContacts = pairs[i].extractContacts(contacts, bufferSize);
+			
+			for (unsigned int j = 0; j < nbContacts; j++)
+			{
+				physx::PxVec3 point = contacts[j].position;
 			}
 		}
 
@@ -134,47 +158,16 @@ physx::PxFilterFlags MyFilterShader(
 	return physx::PxFilterFlag::eDEFAULT;
 }
 
-struct FilterGroup
-{
-	enum Enum
-	{
-		eBALL = (1 << 0),
-		eFLIPPER = (1 << 1),
-		eTABLE = (1 << 2),
-		eFLOOR = (1 << 3),
-	};
-};
-
-void setupFiltering(physx::PxRigidActor* actor, physx::PxU32 filterGroup, physx::PxU32 filterMask)
-{
-	physx::PxFilterData filterData;
-	filterData.word0 = filterGroup; // the FilterGroup this object identifies with
-	filterData.word1 = filterMask; // the FilterGroup this object needs to collide with
-
-	const physx::PxU32 numShapes = actor->getNbShapes();
-	physx::PxShape** shapes = new physx::PxShape*[numShapes];
-
-	actor->getShapes(shapes, numShapes);
-
-	// Set this filter data for all shapes of this object
-	for (int i = 0; i < numShapes; i++)
-	{
-		physx::PxShape* shape = shapes[i];
-		shape->setSimulationFilterData(filterData);
-	}
-
-	delete[] shapes;
-}
-
 int main(int* argc, char** argv)
 {
 	// Create renderer
 	Pinball::Renderer gfx("Pinball Game");
 
 	// Shaders
-	GLuint diffuseShader, unlitShader;
+	GLuint diffuseShader, unlitShader, sparkShader;
 	diffuseShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Diffuse.vert"), getFileContents("GLSL/Diffuse.frag"));
 	unlitShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Unlit.vert"), getFileContents("GLSL/Unlit.frag"));
+	sparkShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Spark.vert"), getFileContents("GLSL/Spark.frag"));
 
 	bool running = true;
 
@@ -219,6 +212,7 @@ int main(int* argc, char** argv)
 	physx::PxSphericalJoint* flipperJointL = nullptr, *flipperJointR = nullptr;
 
 	gLevel = new Pinball::Level("Models/level_meshes.obj", "Models/level_origins.obj", cooking);
+	gLevel->SetScene(scene);
 
 	physx::PxVec3 hingeLocation = gLevel->HingeL()->Transform().p + (gLevel->FlipperR()->Transform().p - gLevel->HingeL()->Transform().p) * 0.9;
 	
@@ -271,15 +265,18 @@ int main(int* argc, char** argv)
 	flipperJointR->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
 	flipperJointR->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
 
-	setupFiltering(gLevel->FlipperL()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering(gLevel->FlipperR()->GetPxRigidActor(), FilterGroup::eFLIPPER, FilterGroup::eBALL);
-	setupFiltering(gLevel->HingeL()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering(gLevel->HingeR()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
+	gLevel->FlipperL()->SetupFiltering(Pinball::FilterGroup::eFLIPPER, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
+	gLevel->FlipperR()->SetupFiltering(Pinball::FilterGroup::eFLIPPER, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
+	gLevel->HingeL()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
+	gLevel->HingeR()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
 
-	setupFiltering(gLevel->Ball()->GetPxRigidActor(), FilterGroup::eBALL, FilterGroup::eTABLE | FilterGroup::eFLIPPER | FilterGroup::eFLOOR);
-	setupFiltering(gLevel->Ramp()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering(gLevel->Table()->GetPxRigidActor(), FilterGroup::eTABLE, FilterGroup::eBALL);
-	setupFiltering(gLevel->Floor()->GetPxRigidActor(), FilterGroup::eFLOOR, FilterGroup::eBALL);
+	gLevel->Ball()->SetupFiltering(Pinball::FilterGroup::eBALL, 
+		Pinball::FilterGroup::eTABLE | 
+		Pinball::FilterGroup::eFLIPPER | 
+		Pinball::FilterGroup::eFLOOR);
+	gLevel->Ramp()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
+	gLevel->Table()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
+	gLevel->Floor()->SetupFiltering(Pinball::FilterGroup::eFLOOR, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
 
 	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
 	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
@@ -287,6 +284,10 @@ int main(int* argc, char** argv)
 	//scene->addActor(*boxObj.GetPxActor());
 	scene->addActor(*planeObj.GetPxActor());
 	scene->addActors(gLevel->AllActors(), gLevel->NbActors());
+
+	//Pinball::Particle testParticle(cooking, physx::PxVec3(0.f), Pinball::ParticleType::ePARTICLE_SPARK);
+
+	//scene->addActor(*testParticle.GetPxActor());
 
 	planeObj.Geometry().Color(1.0f, 1.0f, 1.0f);
 	planeObj.Transform(physx::PxTransform(physx::PxVec3(0.0f, -3.0f, 0.0f), physx::PxQuat(physx::PxIdentity)));
@@ -315,6 +316,7 @@ int main(int* argc, char** argv)
 
 	float launchStrength = 0.0f;
 	bool buildUp = false;
+
 
 	while (running)
 	{
@@ -374,6 +376,8 @@ int main(int* argc, char** argv)
 		elapsedTime = glfwGetTime();
 		deltaTime = elapsedTime - prevElapsedTime;
 
+		gLevel->UpdateParticles(deltaTime);
+
 		// Simulate physics
 		if (!paused)
 		{
@@ -392,6 +396,14 @@ int main(int* argc, char** argv)
 		physx::PxVec3 bp = gLevel->Ball()->Transform().p;
 		lights[1].pointPos = glm::vec3(bp.x, bp.y + 1.0f, bp.z);
 
+		// Spawn particles around ball upon contact
+		if (gGameState.spawnParticles)
+		{
+			gLevel->SpawnParticles(cooking, 3, Pinball::ParticleType::ePARTICLE_SPARK, gGameState.newParticleOrigin);
+
+			gGameState.spawnParticles = false;
+		}
+
 		// Draw
 		glClearColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -401,6 +413,12 @@ int main(int* argc, char** argv)
 		{
 			gfx.Draw(*gLevel->At(i), cam, lights, &diffuseShader);
 		}
+		size_t nbParticles = gLevel->NbParticles();
+		for (size_t i = 0; i < nbParticles; i++)
+		{
+			gfx.Draw(*gLevel->ParticleAt(i), cam, lights, &sparkShader);
+		}
+		//gfx.DrawParticle(*gLevel->Ball(), cam, &sparkShader);
 		//gfx.Draw(planeObj, cam, lights, &unlitShader);
 		//drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, unlitShader);
 

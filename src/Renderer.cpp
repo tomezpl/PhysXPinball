@@ -141,6 +141,56 @@ void Renderer::Draw(GameObject& obj, Camera cam, std::vector<Light> lights, GLui
 	delete[] sunCol;
 }
 
+void Renderer::DrawParticle(GameObject& obj, Camera cam, GLuint* shader)
+{
+	// Retrieve raw vertex & index buffers from the GameObject
+	float* verts = obj.Geometry().GetData();
+	unsigned int* indices = obj.Geometry().GetIndices();
+
+	// If a different shader has been provided than from the last draw call, change to that.
+	if (shader != nullptr)
+	{
+		if (mCurrentShader != *shader)
+		{
+			glUseProgram(*shader);
+			mCurrentShader = *shader;
+		}
+	}
+
+	// Bind vertex array & buffer objects and feed with geometry data
+	glBindVertexArray(mVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), verts, GL_STATIC_DRAW);
+	// Vertex Position
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	// Unbind vertex buffer object
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Get model, view & projection matrices
+	glm::mat4* mvp = getTransform(obj, cam);
+	float* model = mat4ToRaw(mvp[0]), * view = mat4ToRaw(mvp[1]), * proj = mat4ToRaw(mvp[2]);
+
+	// Pass the transform matrices to shader
+	glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_Model"), 1, false, model);
+	glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_View"), 1, false, view);
+	glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_Proj"), 1, false, proj);
+
+	// Non-indexed draw call for this object's triangles
+	// Indexed draw exhibited severe flicker so all meshes are remapped to be unindexed on import (ie. contain duplicate triangles)
+	glDrawArrays(GL_TRIANGLES, 0, obj.Geometry().GetCount());
+
+	// Unbind vertex array object
+	glBindVertexArray(0);
+
+	// Cleanup to stop memory leaks
+	delete[] mvp;
+	delete[] model;
+	delete[] view;
+	delete[] proj;
+	delete[] verts;
+}
+
 GLFWwindow* Renderer::Window()
 {
 	return mWindow;
@@ -178,7 +228,7 @@ glm::mat4* Renderer::getTransform(GameObject& obj, Camera cam)
 	glm::quat modelRot(worldTransform.q.w, worldTransform.q.x, worldTransform.q.y, worldTransform.q.z);
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), modelPos);
 	model *= glm::mat4_cast(modelRot);
-	model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f)); // TODO: no scaling for now
+	model = glm::scale(model, glm::vec3(obj.Scale().X(), obj.Scale().Y(), obj.Scale().Z())); // TODO: no scaling for now
 
 	physx::PxVec3 camPos = cam.Position();
 	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(camPos.x, camPos.y, camPos.z) * -1.0f);

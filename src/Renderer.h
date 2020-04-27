@@ -48,6 +48,8 @@ namespace Pinball
 		void Create(std::string name, int width, int height);
 
 		void Draw(GameObject& object, Camera camera, std::vector<Light> lights, GLuint* shader = nullptr);
+
+		void DrawParticle(GameObject& object, Camera camera, GLuint* shader = nullptr);
 		
 		GLFWwindow* Window();
 

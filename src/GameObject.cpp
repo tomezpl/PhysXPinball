@@ -42,6 +42,16 @@ void GameObject::Geometry(Mesh mesh, GameObject::Type type, GameObject::Collider
 {
 	mMesh = mesh;
 
+	physx::PxMeshScale scale = physx::PxMeshScale(mObjScale.mScale);
+
+	switch (mMesh.GetPxGeometry()->getType())
+	{
+	case physx::PxGeometryType::eCONVEXMESH:
+		((physx::PxConvexMeshGeometry*)mMesh.GetPxGeometry())->scale = scale;
+	case physx::PxGeometryType::eTRIANGLEMESH:
+		((physx::PxTriangleMeshGeometry*)mMesh.GetPxGeometry())->scale = scale;
+	}
+
 	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *_Mat, true) }; // TODO: won't this cause a memory leak on reinitialisation?
 
 	if (mMesh.GetMeshType() == Mesh::MeshType::Plane)
@@ -116,4 +126,65 @@ void GameObject::Transform(physx::PxTransform transform)
 	((physx::PxRigidActor*)mActor)->setGlobalPose(transform);
 }
 
+void GameObject::SetupFiltering(unsigned int filterGroup, unsigned int filterMask)
+{
+	physx::PxFilterData filterData;
+	filterData.word0 = filterGroup; // the FilterGroup this object identifies with
+	filterData.word1 = filterMask; // the FilterGroup this object needs to collide with
 
+	physx::PxRigidActor* actor = GetPxRigidActor();
+	const physx::PxU32 numShapes = actor->getNbShapes();
+	physx::PxShape** shapes = new physx::PxShape * [numShapes];
+
+	actor->getShapes(shapes, numShapes);
+
+	// Set this filter data for all shapes of this object
+	for (int i = 0; i < numShapes; i++)
+	{
+		physx::PxShape* shape = shapes[i];
+		shape->setSimulationFilterData(filterData);
+	}
+
+	delete[] shapes;
+}
+
+ObjectScale& GameObject::Scale()
+{
+	return mObjScale;
+}
+
+ObjectScale::ObjectScale()
+{
+	mScale = physx::PxVec3(1.0f);
+	mMeshScale = physx::PxMeshScale(mScale);
+}
+
+float ObjectScale::X()
+{
+	return mScale.x;
+}
+
+void ObjectScale::X(float x)
+{
+	mScale.x = x;
+}
+
+float ObjectScale::Y()
+{
+	return mScale.y;
+}
+
+void ObjectScale::Y(float y)
+{
+	mScale.y = y;
+}
+
+float ObjectScale::Z()
+{
+	return mScale.z;
+}
+
+void ObjectScale::Z(float z)
+{
+	mScale.z = z;
+}

@@ -23,6 +23,8 @@ void Level::init()
 		mBall = new GameObject();
 	if (!mFloor)
 		mFloor = new GameObject();
+
+	mScenePtr = nullptr;
 }
 
 GameObject* const Level::FlipperL()
@@ -130,9 +132,114 @@ physx::PxActor* const Level::ActorAt(size_t i)
 	}
 }
 
+GameObject* const Level::ParticleAt(size_t index)
+{
+	size_t i = 0;
+	for (size_t j = 0; j < mParticles.size(); j++)
+	{
+		if(mParticles[j] == nullptr || !mParticles[j]->IsAlive())
+		{
+			continue;
+		}
+		else if (i == index)
+		{
+			return mParticles[j];
+		}
+		else
+		{
+			i++;
+		}
+	}
+
+	return nullptr;
+}
+
 size_t Level::NbActors()
 {
 	return 8;
+}
+
+size_t Level::NbParticles()
+{
+	size_t ret = 0;
+	for (size_t i = 0; i < mParticles.size(); i++)
+	{
+		if (mParticles[i] != nullptr && mParticles[i]->IsAlive())
+		{
+			ret++;
+		}
+	}
+	return ret;
+}
+
+void Level::UpdateParticles(float dt)
+{
+	for (size_t i = 0; i < mParticles.size(); i++)
+	{
+		if (mParticles[i] != nullptr)
+		{
+			mParticles[i]->Advance(dt);
+			if (!mParticles[i]->IsAlive())
+			{
+				mScenePtr->removeActor(*mParticles[i]->GetPxActor());
+				delete mParticles[i];
+				mParticles[i] = nullptr;
+			}
+		}
+	}
+}
+
+void Level::SpawnParticle(physx::PxCooking* cooking, ParticleType type, physx::PxVec3 origin)
+{
+	bool added = false;
+	for (size_t i = 0; i < mParticles.size(); i++)
+	{
+		if (mParticles[i] == nullptr)
+		{
+			mParticles[i] = new Particle(cooking, origin, type);
+			mScenePtr->addActor(*mParticles[i]->GetPxActor());
+			added = true;
+			break;
+		}
+	}
+	if (!added)
+	{
+		mParticles.push_back(new Particle(cooking, origin, type));
+		mScenePtr->addActor(*mParticles[mParticles.size()-1]->GetPxActor());
+		added = true;
+	}
+}
+
+void Level::SpawnParticles(physx::PxCooking* cooking, size_t count, ParticleType type, physx::PxVec3 origin)
+{
+	physx::PxActor** particleActors = new physx::PxActor*[count];
+	for (size_t i = 0; i < count; i++)
+	{
+		bool added = false;
+		for (size_t j = 0; j < mParticles.size(); j++)
+		{
+			if (mParticles[j] == nullptr)
+			{
+				mParticles[j] = new Particle(cooking, origin, type);
+				particleActors[i] = mParticles[j]->GetPxActor();
+				added = true;
+				break;
+			}
+		}
+		if (!added)
+		{
+			mParticles.push_back(new Particle(cooking, origin, type));
+			particleActors[i] = mParticles[mParticles.size() - 1]->GetPxActor();
+			added = true;
+		}
+	}
+
+	mScenePtr->addActors(particleActors, count);
+}
+
+void Level::SetScene(physx::PxScene* scenePtr)
+{
+	mScenePtr = scenePtr;
 }
 
 Level::Level()
