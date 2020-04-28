@@ -10,5 +10,5 @@ void main()
 {
 	vec3 sparkColor = vec3(1.0, 215.0/255.0, 0.0);
 	color = vec4(sparkColor, _Opacity);
-	//gl_FragDepth = 0.0;
+	gl_FragDepth = 0.0;
 }
