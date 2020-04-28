@@ -100,7 +100,6 @@ void GameObject::Name(std::string name)
 {
 	mName = name;
 
-	// TODO: this might lead to small memory leaks
 	const char* cName = new const char[name.length() + 1];
 	memcpy((void*)cName, name.c_str(), name.length() * sizeof(const char));
 	const char nullTerminator = '\0';
