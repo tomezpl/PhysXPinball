@@ -64,9 +64,10 @@ public:
 	{
 		std::cerr << "Contact found between " << pairHeader.actors[0]->getName() << " " << pairHeader.actors[1]->getName() << std::endl;
 
-		// Check for collision with bottom of the table
+		// Check for collision with particular objects
 		bool ballFound = false;
 		bool tableFound = false;
+		bool floorFound = false;
 		physx::PxVec3 ballPos;
 		if (strContains(pairHeader.actors[0]->getName(), "Ball") || strContains(pairHeader.actors[1]->getName(), "Ball"))
 		{
@@ -76,14 +77,17 @@ public:
 		{
 			tableFound = true;
 		}
+		if (strContains(pairHeader.actors[0]->getName(), "Floor") || strContains(pairHeader.actors[1]->getName(), "Floor"))
+		{
+			floorFound = true;
+		}
 
 		std::cout << "ballFound: " << (!ballFound ? "false" : "true") << ", tableFound: " << (!tableFound ? "false" : "true") << std::endl;
 		if (ballFound)
 		{
-
 			ballPos = gLevel->Ball()->Transform().p;
-			gGameState.spawnParticles = true;
 			gGameState.newParticleOrigin = ballPos;
+			gGameState.spawnParticles = !floorFound; // don't generate spark particles on persistent contact with floor, there's too many of them
 			if (tableFound)
 			{
 				std::cout << "ballZ: " << ballPos.z << ", FlipperL.Z: " << gLevel->FlipperL()->Transform().p.z << std::endl;
@@ -94,36 +98,51 @@ public:
 			}
 		}
 
-		const unsigned int bufferSize = 64;
-		physx::PxContactPairPoint contacts[bufferSize];
+		//check all pairs
 		for (unsigned int i = 0; i < nbPairs; i++)
 		{
 			const physx::PxContactPair& cp = pairs[i];
 
-			unsigned int nbContacts = pairs[i].extractContacts(contacts, bufferSize);
-			
-			for (unsigned int j = 0; j < nbContacts; j++)
-			{
-				physx::PxVec3 point = contacts[j].position;
-			}
-		}
+			physx::PxContactStreamIterator iter(cp.contactPatches, cp.contactPoints, cp.getInternalFaceIndices(), cp.patchCount, cp.contactCount);
 
-		//check all pairs
-		for (physx::PxU32 i = 0; i < nbPairs; i++)
-		{
-			//if (static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[0]->getActor()->userData)->isCollider && static_cast<Pinball::Middleware::UserData*>(pairs[i].shapes[1]->getActor()->userData)->isCollider)
+			const float* impulses = cp.contactImpulses;
+
+			unsigned int flippedContacts = (cp.flags & physx::PxContactPairFlag::eINTERNAL_CONTACTS_ARE_FLIPPED);
+			unsigned int hasImpulses = (cp.flags & physx::PxContactPairFlag::eINTERNAL_HAS_IMPULSES);
+			unsigned int nbContacts = 0;
+
+			while (iter.hasNextPatch())
 			{
-				//check eNOTIFY_TOUCH_FOUND
-				if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
+				iter.nextPatch();
+				while (iter.hasNextContact())
 				{
-					std::cerr << "onContact::eNOTIFY_TOUCH_FOUND" << std::endl;
-				}
-				//check eNOTIFY_TOUCH_LOST
-				if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
-				{
-				std::cerr << "onContact::eNOTIFY_TOUCH_LOST" << std::endl;
+					iter.nextContact();
+					physx::PxVec3 point = iter.getContactPoint();
+
+					if (ballFound & !floorFound)
+					{
+						gGameState.newParticleOrigin = point;
+					}
+
+					nbContacts++;
 				}
 			}
+
+			//check eNOTIFY_TOUCH_FOUND
+			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
+			{
+				std::cerr << "onContact::eNOTIFY_TOUCH_FOUND" << std::endl;
+			}
+			//check eNOTIFY_TOUCH_LOST
+			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
+			{
+				std::cerr << "onContact::eNOTIFY_TOUCH_LOST" << std::endl;
+				if (ballFound)
+				{
+					gGameState.spawnParticles = false;
+				}
+			}
+
 		}
 	}
 
@@ -158,7 +177,14 @@ physx::PxFilterFlags MyFilterShader(
 	{
 		// If not a trigger, then generate contact response
 		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
-		pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
+		pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_FOUND | physx::PxPairFlag::eNOTIFY_TOUCH_LOST | physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS;
+	}
+
+	if ((filterData0.word0 & Pinball::FilterGroup::eBALL) || (filterData1.word0 & Pinball::FilterGroup::eBALL))
+	{
+		pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_CCD;
+		pairFlags |= physx::PxPairFlag::eDETECT_CCD_CONTACT;
+		pairFlags |= physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 	}
 
 	return physx::PxFilterFlag::eDEFAULT;
@@ -197,6 +223,7 @@ int main(int* argc, char** argv)
 	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 9.81f);
 	sceneDesc.filterShader = MyFilterShader;
 	sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
+	sceneDesc.flags = physx::PxSceneFlag::eENABLE_CCD;
 	physx::PxScene* scene = PxGetPhysics().createScene(sceneDesc);
 	scene->setSimulationEventCallback(new MySimulationEventCallback());
 
@@ -405,9 +432,13 @@ int main(int* argc, char** argv)
 		// Spawn particles around ball upon contact
 		if (gGameState.spawnParticles)
 		{
-			gLevel->SpawnParticles(cooking, 20, Pinball::ParticleType::ePARTICLE_SPARK, gGameState.newParticleOrigin);
-
-			gGameState.spawnParticles = false;
+			// minimum velocity to spawn spark particles
+			float minSpeed = 3.0f;
+			physx::PxVec3 ballV = ((physx::PxRigidDynamic*)gLevel->Ball()->GetPxActor())->getLinearVelocity();
+			if (ballV.magnitude() > minSpeed)
+			{
+				gLevel->SpawnParticles(cooking, 3, Pinball::ParticleType::ePARTICLE_SPARK, gGameState.newParticleOrigin);
+			}
 		}
 
 		// Draw

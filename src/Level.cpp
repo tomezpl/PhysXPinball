@@ -308,6 +308,10 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 		if (strContains("Ball FlipperL FlipperR HingeL HingeR Table Floor Ramp", meshName))
 		{
 			objToAssign->Geometry(meshes[i], objType);
+			if (objType == GameObject::Dynamic)
+			{
+				((physx::PxRigidDynamic*)objToAssign->GetPxActor())->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, true);
+			}
 			objToAssign->Name(meshName);
 			objToAssign->Transform(physx::PxTransform(origins[i].GetCenterPoint(), physx::PxQuat(physx::PxIdentity)));
 			objToAssign->Geometry().Color(0.5f, 0.5f, 0.5f);

@@ -19,7 +19,7 @@ GameObject::GameObject()
 	}
 }
 
-GameObject::GameObject(Mesh geometry, GameObject::Type type, std::string name, GameObject::ColliderType colliderType)
+GameObject::GameObject(Mesh& geometry, GameObject::Type type, std::string name, GameObject::ColliderType colliderType)
 {
 	mActor = nullptr;
 	mName = name;
@@ -38,9 +38,9 @@ Mesh GameObject::Geometry()
 	return mMesh;
 }
 
-void GameObject::Geometry(Mesh mesh, GameObject::Type type, GameObject::ColliderType colliderType)
+void GameObject::Geometry(Mesh& mesh, GameObject::Type type, GameObject::ColliderType colliderType)
 {
-	mMesh = mesh;
+	mMesh = Mesh(mesh);
 
 	physx::PxMeshScale scale = physx::PxMeshScale(mObjScale.mScale);
 
@@ -77,13 +77,6 @@ void GameObject::Geometry(Mesh mesh, GameObject::Type type, GameObject::Collider
 			((physx::PxRigidDynamic*)mActor)->attachShape(*mShapes[i]);
 		}
 	}
-
-	// TODO: can this cause memory leaks on reinitialising geometry?
-	Middleware::UserData* userData = new Middleware::UserData();
-	userData->isTrigger = colliderType == ColliderType::Trigger || ColliderType::ColliderTrigger;
-	userData->isCollider = colliderType == ColliderType::Collider || ColliderType::ColliderTrigger;
-
-	mActor->userData = userData;
 
 	mActor->setName(mName.c_str());
 }
