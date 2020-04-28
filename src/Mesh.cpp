@@ -46,13 +46,11 @@ void Pinball::Mesh::Name(std::string name)
 	mName = name;
 }
 
-Mesh Mesh::createSphere(physx::PxCooking* cooking, float radius)
+// Sphere generation code, reused from RendererCapsuleShape.cpp in PhysX samples
+Mesh Mesh::createSphere(physx::PxCooking* cooking, float radius, size_t stacks, size_t slices)
 {
 	Mesh ret;
 	ret.mPrimitiveHx = physx::PxVec3(radius);
-
-	size_t stacks = 16;
-	size_t slices = 8;
 
 	const float thetaStep = physx::PxPi / stacks;
 	const float phiStep = physx::PxTwoPi / (slices * 2);
@@ -248,13 +246,8 @@ float* Mesh::GetData()
 
 	for (size_t i = 0; i < count; i++)
 	{
-		// TODO: this is bugged, using slow version for now 
-		//memcpy(ret + i*3, mVertices[i].GetData(), 3 * sizeof(float));
-		float* vert = (IsIndexed()) ? mAllVerts[i].GetData() : mVertices[i].GetData();
-		float v0 = vert[0], v1 = vert[1], v2 = vert[2];
-		ret[(i*3)] = vert[0];
-		ret[(i * 3) + 1] = vert[1];
-		ret[(i * 3) + 2] = vert[2];
+		float* vert = (IsIndexed() ? mAllVerts[i].GetData() : mVertices[i].GetData());
+		memcpy(ret + i*3, vert, 3 * sizeof(float));
 		delete[] vert;
 	}
 

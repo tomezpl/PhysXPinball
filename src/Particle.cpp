@@ -3,7 +3,7 @@
 
 using namespace Pinball;
 
-Mesh* Particle::mSparkMesh = nullptr;
+Mesh* Particle::_SparkMesh = nullptr;
 
 Particle::Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType type)
 {
@@ -12,12 +12,12 @@ Particle::Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType
 	{
 	case ParticleType::ePARTICLE_SPARK:
 		mDuration = 0.33f;
-		if (mSparkMesh == nullptr)
+		if (_SparkMesh == nullptr)
 		{
-			mSparkMesh = new Mesh(Mesh::createSphere(cooking, 0.125f));
+			_SparkMesh = new Mesh(Mesh::createSphere(cooking, 0.05f, 4, 2));
 		}
-		Geometry(*mSparkMesh);
-		SetupFiltering(FilterGroup::ePARTICLE, FilterGroup::eFLIPPER | FilterGroup::eFLOOR | FilterGroup::eTABLE);
+		Geometry(*_SparkMesh);
+		SetupFiltering(FilterGroup::ePARTICLE, 0);
 	}
 
 	Transform(physx::PxTransform(origin));
@@ -55,7 +55,7 @@ void Particle::Advance(float deltaTime)
 		float randomX = (float)rand() / RAND_MAX;
 		float randomY = (float)rand() / RAND_MAX;
 		float randomZ = (float)rand() / RAND_MAX;
-		float strength = 50.0f;
+		float strength = 500.0f; // initial kinetic energy
 
 		((physx::PxRigidDynamic*)GetPxActor())->addForce(physx::PxVec3(randomX, randomY, randomZ) * strength);
 	}

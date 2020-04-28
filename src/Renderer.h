@@ -16,6 +16,7 @@
 
 #include "GameObject.h"
 #include "Particle.h"
+#include "Level.h"
 #include "Camera.h"
 #include "Light.h"
 #include "Util.h"
@@ -50,7 +51,11 @@ namespace Pinball
 
 		void Draw(GameObject& object, Camera camera, std::vector<Light> lights, GLuint* shader = nullptr);
 
-		void DrawParticle(Particle& object, Camera camera, GLuint* shader = nullptr);
+		void DrawParticle(Particle& particle, Camera camera, GLuint* shader = nullptr);
+
+		// If drawing multiple particles of the same type, use DrawParticles, as it only copies the particle geometry once.
+		// This assumes that ALL particles in the level are of the same type.
+		void DrawParticles(Level& level, Camera camera, GLuint* shader = nullptr);
 		
 		GLFWwindow* Window();
 

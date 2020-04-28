@@ -159,7 +159,11 @@ void GameObject::destroy()
 	{
 		if (mShapes[i] != nullptr && mShapes[i]->isReleasable())
 		{
-			mShapes[i]->release();
+			if (mShapes[i]->getActor() != NULL)
+			{
+				mShapes[i]->getActor()->release();
+			}
+			//mShapes[i]->release();
 		}
 	}
 }

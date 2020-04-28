@@ -17,7 +17,7 @@ namespace Pinball {
 		bool mFirstFrame; // is this the first frame of the particle's lifetime?
 
 		// Cached meshes to reuse
-		static Mesh* mSparkMesh;
+		static Mesh* _SparkMesh;
 	public:
 		Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType type);
 		bool IsAlive();

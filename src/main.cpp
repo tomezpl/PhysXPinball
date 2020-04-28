@@ -147,6 +147,12 @@ physx::PxFilterFlags MyFilterShader(
 		return physx::PxFilterFlag::eDEFAULT;
 	}
 
+	// Suppress particles
+	if ((filterData0.word0 & Pinball::FilterGroup::ePARTICLE) || (filterData1.word0 & Pinball::FilterGroup::ePARTICLE))
+	{
+		return physx::PxFilterFlag::eKILL;
+	}
+
 	// Both objects need to contain each other's IDs in their filtermasks in order for a contact callback to be triggered.
 	if ((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
 	{
@@ -399,7 +405,7 @@ int main(int* argc, char** argv)
 		// Spawn particles around ball upon contact
 		if (gGameState.spawnParticles)
 		{
-			gLevel->SpawnParticles(cooking, 3, Pinball::ParticleType::ePARTICLE_SPARK, gGameState.newParticleOrigin);
+			gLevel->SpawnParticles(cooking, 20, Pinball::ParticleType::ePARTICLE_SPARK, gGameState.newParticleOrigin);
 
 			gGameState.spawnParticles = false;
 		}
@@ -413,11 +419,8 @@ int main(int* argc, char** argv)
 		{
 			gfx.Draw(*gLevel->At(i), cam, lights, &diffuseShader);
 		}
-		size_t nbParticles = gLevel->NbParticles();
-		for (size_t i = 0; i < nbParticles; i++)
-		{
-			gfx.DrawParticle(*gLevel->ParticleAt(i), cam, &sparkShader);
-		}
+
+		gfx.DrawParticles(*gLevel, cam, &sparkShader);
 		//gfx.DrawParticle(*gLevel->Ball(), cam, &sparkShader);
 		//gfx.Draw(planeObj, cam, lights, &unlitShader);
 		//drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, unlitShader);
