@@ -175,7 +175,7 @@ void Renderer::DrawParticles(Level& level, Camera cam, GLuint* shader)
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
 		glEnableVertexAttribArray(0);
 		// Unbind vertex buffer object
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		//glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		// Get model, view & projection matrices
 		glm::mat4* mvp = getTransform(*level.ParticleAt(i), cam);
@@ -210,9 +210,63 @@ void Renderer::DrawParticles(Level& level, Camera cam, GLuint* shader)
 	delete[] verts;
 }
 
+void Renderer::DrawImage(Image& img, float x, float y, float w, float h, GLuint* shader)
+{
+	// If a different shader has been provided than from the last draw call, change to that.
+	if (shader != nullptr)
+	{
+		if (mCurrentShader != *shader)
+		{
+			glUseProgram(*shader);
+			mCurrentShader = *shader;
+		}
+	}
+
+	// Rectangle centered around xy with half-extents of w/2,h/2
+	float vertices[] = {
+		// Vertex coords			// Texture UV
+		x - w / 2.f, y - h / 2.f,	0.f, 1.f,	// top left
+		x + w / 2.f, y - h / 2.f,	1.f, 1.f,	// top right 1
+		x - w / 2.f, y + h / 2.f,	0.f, 0.f,	// bottom left 1
+
+		x + w / 2.f, y - h / 2.f,	1.f, 1.f,	// top right 2
+		x + w / 2.f, y + h / 2.f,	1.f, 0.f,	// bottom right
+		x - w / 2.f, y + h / 2.f,	0.f, 0.f	// bottom left 2
+	};
+
+	// Bind vertex array & buffer objects and feed with geometry & UV data
+	glBindVertexArray(mVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+	glBufferData(GL_ARRAY_BUFFER, 6 * 4 * sizeof(float), vertices, GL_STATIC_DRAW);
+	// Vertex Position
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	//// Vertex UV (for texture sampling)
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (GLvoid*)(2*sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	//glBindTexture(GL_TEXTURE_2D, img.GetTexture());
+	glBindVertexArray(mVAO);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+}
+
 GLFWwindow* Renderer::Window()
 {
 	return mWindow;
+}
+
+void Renderer::CreateTexture(Image& img)
+{
+	glBindTexture(GL_TEXTURE_2D, img.mTexture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.mWidth, img.mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.mData);
+	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 unsigned int Renderer::compileShader(std::string vSource, std::string fSource)

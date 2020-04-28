@@ -23,6 +23,14 @@ struct
 	// For spawning particles upon ball contact
 	bool spawnParticles = false;
 	physx::PxVec3 newParticleOrigin = physx::PxVec3();
+
+	// Coordinates of the plunger area at spawn, to avoid counting that as a loss
+	physx::PxVec3 plungerArea = physx::PxVec3();
+
+	// Game-Over screen duration
+	const float gameOverDuration = 3.0f;
+	// Game-Over screen time so far
+	float gameOverTime = 0.0f;
 } gGameState;
 
 ///A customised collision class, implemneting various callbacks
@@ -62,7 +70,7 @@ public:
 	///Method called when the contact by the filter shader is detected.
 	virtual void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
 	{
-		std::cerr << "Contact found between " << pairHeader.actors[0]->getName() << " " << pairHeader.actors[1]->getName() << std::endl;
+		//std::cerr << "Contact found between " << pairHeader.actors[0]->getName() << " " << pairHeader.actors[1]->getName() << std::endl;
 
 		// Check for collision with particular objects
 		bool ballFound = false;
@@ -82,7 +90,7 @@ public:
 			floorFound = true;
 		}
 
-		std::cout << "ballFound: " << (!ballFound ? "false" : "true") << ", tableFound: " << (!tableFound ? "false" : "true") << std::endl;
+		//std::cout << "ballFound: " << (!ballFound ? "false" : "true") << ", tableFound: " << (!tableFound ? "false" : "true") << std::endl;
 		if (ballFound)
 		{
 			ballPos = gLevel->Ball()->Transform().p;
@@ -90,8 +98,8 @@ public:
 			gGameState.spawnParticles = !floorFound; // don't generate spark particles on persistent contact with floor, there's too many of them
 			if (tableFound)
 			{
-				std::cout << "ballZ: " << ballPos.z << ", FlipperL.Z: " << gLevel->FlipperL()->Transform().p.z << std::endl;
-				if (ballPos.z > gLevel->FlipperL()->Transform().p.z)
+				//std::cout << "ballZ: " << ballPos.z << ", FlipperL.Z: " << gLevel->FlipperL()->Transform().p.z << std::endl;
+				if (ballPos.z > gLevel->FlipperL()->Transform().p.z && std::fabs(ballPos.x - gGameState.plungerArea.x) > 0.5f)
 				{
 					gGameState.notifyLoss = true;
 				}
@@ -194,10 +202,15 @@ int main(int* argc, char** argv)
 	Pinball::Renderer gfx("Pinball Game");
 
 	// Shaders
-	GLuint diffuseShader, unlitShader, sparkShader;
+	GLuint diffuseShader, unlitShader, sparkShader, imgShader;
 	diffuseShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Diffuse.vert"), getFileContents("GLSL/Diffuse.frag"));
 	unlitShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Unlit.vert"), getFileContents("GLSL/Unlit.frag"));
 	sparkShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Spark.vert"), getFileContents("GLSL/Spark.frag"));
+	imgShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Image2D.vert"), getFileContents("GLSL/Image2D.frag"));
+
+	// game-over screen image
+	Pinball::Image gameOverImg("Images/gameover.png");
+	gfx.CreateTexture(gameOverImg);
 
 	bool running = true;
 
@@ -348,6 +361,8 @@ int main(int* argc, char** argv)
 	float launchStrength = 0.0f;
 	bool buildUp = false;
 
+	// Store plunger area location (taken from the ball's initial position)
+	gGameState.plungerArea = gLevel->Ball()->Transform().p;
 
 	while (running)
 	{
@@ -419,8 +434,14 @@ int main(int* argc, char** argv)
 		// Check if ball hit bottom of table
 		if (gGameState.notifyLoss)
 		{
-			std::cout << "Game over!" << std::endl;
+			gGameState.gameOverTime += deltaTime;
+		}
+
+		if (gGameState.gameOverDuration < gGameState.gameOverTime)
+		{
+			gLevel->Ball()->Transform(physx::PxTransform(gGameState.plungerArea));
 			gGameState.notifyLoss = false;
+			gGameState.gameOverTime = 0.0f;
 		}
 
 		// Attach light to ball
@@ -450,6 +471,10 @@ int main(int* argc, char** argv)
 		}
 
 		gfx.DrawParticles(*gLevel, cam, &sparkShader);
+		if (gGameState.notifyLoss)
+		{
+			gfx.DrawImage(gameOverImg, 0.f, 0.f, 1.f, 1.f, &imgShader);
+		}
 		//gfx.DrawParticle(*gLevel->Ball(), cam, &sparkShader);
 		//gfx.Draw(planeObj, cam, lights, &unlitShader);
 		//drawMesh(planeObj, glm::vec2(vWidth, vHeight), vao, vbo, ibo, unlitShader);

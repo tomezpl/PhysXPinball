@@ -42,6 +42,9 @@
     <ClCompile Include="src\Particle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -61,6 +64,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="res\GLSL\Spark.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\GLSL\Image2D.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\GLSL\Image2D.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

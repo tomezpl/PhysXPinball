@@ -14,6 +14,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+// stb_image
+#include <3rdparty/stb_image.h>
+
 #include "GameObject.h"
 #include "Particle.h"
 #include "Level.h"
@@ -23,6 +26,30 @@
 
 namespace Pinball
 {
+	class Renderer;
+
+	class Image {
+		friend class Renderer;
+	private:
+		int mWidth, mHeight;
+		int mSpectrum;
+		unsigned char* mData;
+
+		unsigned int mTexture; // OpenGL texture handle for this image
+	public:
+		Image();
+		Image(std::string filePath);
+		void Load(std::string filePath);
+		unsigned char* GetData();
+
+		// Returns OpenGL texture handle
+		unsigned int& GetTexture();
+
+		int DataLength();
+		int Width();
+		int Height();
+	};
+
 	class Renderer 
 	{
 	protected:
@@ -54,6 +81,11 @@ namespace Pinball
 		// If drawing multiple particles of the same type, use DrawParticles, as it only copies the particle geometry once.
 		// This assumes that ALL particles in the level are of the same type.
 		void DrawParticles(Level& level, Camera camera, GLuint* shader = nullptr);
+
+		void CreateTexture(Image& img);
+
+		// Draw a 2D image somewhere on the screen
+		void DrawImage(Image& image, float x, float y, float width, float height, GLuint* shader = nullptr);
 		
 		GLFWwindow* Window();
 

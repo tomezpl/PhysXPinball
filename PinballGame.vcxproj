@@ -96,7 +96,11 @@ move "$(TargetDir)\temp\PhysXDevice.dll" "$(TargetDir)\temp\dllFiles"
 move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
 rmdir "$(TargetDir)\temp" /s /q
 mkdir "$(TargetDir)\GLSL"
-xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
+xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c
+mkdir "$(TargetDir)\Models"
+xcopy "$(ProjectDir)\res\Models" "$(TargetDir)\Models" /y /c
+mkdir "$(TargetDir)\Images"
+xcopy "$(ProjectDir)\res\Images" "$(TargetDir)\Images" /y /c</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -131,7 +135,9 @@ rmdir "$(TargetDir)\temp" /s /q
 mkdir "$(TargetDir)\GLSL"
 xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c
 mkdir "$(TargetDir)\Models"
-xcopy "$(ProjectDir)\res\Models" "$(TargetDir)\Models" /y /c</Command>
+xcopy "$(ProjectDir)\res\Models" "$(TargetDir)\Models" /y /c
+mkdir "$(TargetDir)\Images"
+xcopy "$(ProjectDir)\res\Images" "$(TargetDir)\Images" /y /c</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -167,7 +173,11 @@ move "$(TargetDir)\temp\*.dll" "$(TargetDir)\temp\dllFiles"
 move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
 rmdir "$(TargetDir)\temp" /s /q
 mkdir "$(TargetDir)\GLSL"
-xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
+xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c
+mkdir "$(TargetDir)\Models"
+xcopy "$(ProjectDir)\res\Models" "$(TargetDir)\Models" /y /c
+mkdir "$(TargetDir)\Images"
+xcopy "$(ProjectDir)\res\Images" "$(TargetDir)\Images" /y /c</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -204,7 +214,11 @@ move "$(TargetDir)\temp\dllFiles\*.*" "$(TargetDir)\"
 rmdir "$(TargetDir)\temp" /s /q
 xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\" /y /c
 mkdir "$(TargetDir)\GLSL"
-xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
+xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c
+mkdir "$(TargetDir)\Models"
+xcopy "$(ProjectDir)\res\Models" "$(TargetDir)\Models" /y /c
+mkdir "$(TargetDir)\Images"
+xcopy "$(ProjectDir)\res\Images" "$(TargetDir)\Images" /y /c</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -214,6 +228,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
   <ItemGroup>
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
+    <ClCompile Include="src\Image.cpp" />
     <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
@@ -226,6 +241,8 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     <None Include="packages.config" />
     <None Include="res\GLSL\Diffuse.frag" />
     <None Include="res\GLSL\Diffuse.vert" />
+    <None Include="res\GLSL\Image2D.frag" />
+    <None Include="res\GLSL\Image2D.vert" />
     <None Include="res\GLSL\Spark.frag" />
     <None Include="res\GLSL\Spark.vert" />
     <None Include="res\GLSL\Unlit.frag" />
