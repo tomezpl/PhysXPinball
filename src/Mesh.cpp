@@ -46,6 +46,68 @@ void Pinball::Mesh::Name(std::string name)
 	mName = name;
 }
 
+// Sphere generation code, reused from RendererCapsuleShape.cpp in PhysX samples
+Mesh Mesh::createSphere(physx::PxCooking* cooking, float radius, size_t stacks, size_t slices)
+{
+	Mesh ret;
+	ret.mPrimitiveHx = physx::PxVec3(radius);
+
+	const float thetaStep = physx::PxPi / stacks;
+	const float phiStep = physx::PxTwoPi / (slices * 2);
+
+	float theta = 0.0f;
+
+	// generate vertices
+	for (size_t y = 0; y <= stacks; ++y)
+	{
+		float phi = 0.0f;
+
+		float cosTheta = physx::PxCos(theta);
+		float sinTheta = physx::PxSin(theta);
+
+		for (size_t x = 0; x <= slices * 2; ++x)
+		{
+			float cosPhi = physx::PxCos(phi);
+			float sinPhi = physx::PxSin(phi);
+
+			physx::PxVec3 p(cosPhi * sinTheta * radius, cosTheta * radius, sinPhi * sinTheta * radius);
+
+			// write vertex
+			ret.mVertices.push_back(Vertex(p.x, p.y, p.z));
+
+			phi += phiStep;
+		}
+
+		theta += thetaStep;
+	}
+
+	const int numRingQuads = 2 * slices;
+	const int numRingVerts = 2 * slices + 1;
+
+	// add faces
+	for (size_t y = 0; y < stacks; ++y)
+	{
+		for (size_t i = 0; i < numRingQuads; ++i)
+		{
+			// add a quad
+			ret.mIndices.push_back((y + 0) * numRingVerts + i);
+			ret.mIndices.push_back((y + 1) * numRingVerts + i);
+			ret.mIndices.push_back((y + 1) * numRingVerts + i + 1);
+
+			ret.mIndices.push_back((y + 1) * numRingVerts + i + 1);
+			ret.mIndices.push_back((y + 0) * numRingVerts + i + 1);
+			ret.mIndices.push_back((y + 0) * numRingVerts + i);
+		}
+	}
+
+	ret.mAllVerts = ret.reverseIndexing(ret.mVertices, ret.mIndices);
+	ret.mType = MeshType::Sphere;
+
+	ret.UpdatePx(cooking);
+
+	return ret;
+}
+
 Mesh Mesh::createBox(physx::PxCooking* cooking, float size)
 {
 	Mesh ret;
@@ -126,7 +188,7 @@ std::vector<Mesh> Mesh::fromFile(std::string filePath, physx::PxCooking* cooking
 	std::vector<Mesh> ret;
 
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals);
+	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -184,13 +246,8 @@ float* Mesh::GetData()
 
 	for (size_t i = 0; i < count; i++)
 	{
-		// TODO: this is bugged, using slow version for now 
-		//memcpy(ret + i*3, mVertices[i].GetData(), 3 * sizeof(float));
-		float* vert = (IsIndexed()) ? mAllVerts[i].GetData() : mVertices[i].GetData();
-		float v0 = vert[0], v1 = vert[1], v2 = vert[2];
-		ret[(i*3)] = vert[0];
-		ret[(i * 3) + 1] = vert[1];
-		ret[(i * 3) + 2] = vert[2];
+		float* vert = (IsIndexed() ? mAllVerts[i].GetData() : mVertices[i].GetData());
+		memcpy(ret + i*3, vert, 3 * sizeof(float));
 		delete[] vert;
 	}
 

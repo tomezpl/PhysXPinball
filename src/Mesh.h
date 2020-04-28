@@ -49,6 +49,7 @@ namespace Pinball
 		std::string Name();
 		void Name(std::string name);
 
+		static Mesh createSphere(physx::PxCooking* cooking, float raidus = 1.0f, size_t stacks = 16, size_t slices = 8);
 		static Mesh createBox(physx::PxCooking* cooking, float size = 1.0f);
 		static Mesh createPlane(physx::PxCooking* cooking);
 		static std::vector<Mesh> fromFile(std::string filePath, physx::PxCooking* cooking, bool updatePx = true);

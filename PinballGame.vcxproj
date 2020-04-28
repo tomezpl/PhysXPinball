@@ -217,6 +217,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
+    <ClCompile Include="src\Particle.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\Util.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
@@ -225,6 +226,8 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     <None Include="packages.config" />
     <None Include="res\GLSL\Diffuse.frag" />
     <None Include="res\GLSL\Diffuse.vert" />
+    <None Include="res\GLSL\Spark.frag" />
+    <None Include="res\GLSL\Spark.vert" />
     <None Include="res\GLSL\Unlit.frag" />
     <None Include="res\GLSL\Unlit.vert" />
   </ItemGroup>
@@ -235,6 +238,7 @@ xcopy "$(ProjectDir)\res\GLSL" "$(TargetDir)\GLSL" /y /c</Command>
     <ClInclude Include="src\Light.h" />
     <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\Middleware.h" />
+    <ClInclude Include="src\Particle.h" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\Util.h" />
     <ClInclude Include="src\Vertex.h" />

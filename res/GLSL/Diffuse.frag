@@ -26,23 +26,29 @@ uniform DirLight _Sun;
 
 // Maximum number of lights
 // _LightCount <= POINT_LIGHT_COUNT
-#define POINT_LIGHT_COUNT 8
+#define POINT_LIGHT_COUNT 16
 uniform PointLight _Lights[POINT_LIGHT_COUNT];
 
 vec3 pointLight(int index)
 {
+	vec3 ambient = vec3(0.25f, 0.25f, 0.25f);
+
 	vec3 lightDir = normalize(_Lights[index].position - fragCoord);
     // diffuse shading
     float diff = max(dot(normalDir, lightDir), 0.0f);
 	float plDistance = length(_Lights[index].position - fragCoord);
 	float attenuation = 1.0f/(_Lights[index].kc + _Lights[index].kl*plDistance + _Lights[index].kq*(plDistance*plDistance));
 
-	return _Lights[index].color * diff * attenuation;
+	vec3 diffuse = vec3(_Lights[index].color * diff) * attenuation;
+	ambient *= attenuation;
+
+
+	return ambient + diffuse;
 }
 
 vec3 sunLight()
 {
-	return _Sun.color * max(dot(normalize(normalDir), normalize(-_Sun.direction)), 0.0f);
+	return _Sun.color * max(dot(normalDir, normalize(-_Sun.direction)), 0.0f);
 }
 
 void main()

@@ -47,6 +47,10 @@ void Renderer::Create(std::string name, int width, int height)
 	glDepthFunc(GL_LEQUAL);
 	glDepthRange(0.0f, 1.0f);
 
+	// Enable alpha blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	// Generate buffers
 	glGenBuffers(1, &mVBO);
 	glGenBuffers(1, &mIBO);
@@ -141,6 +145,71 @@ void Renderer::Draw(GameObject& obj, Camera cam, std::vector<Light> lights, GLui
 	delete[] sunCol;
 }
 
+void Renderer::DrawParticles(Level& level, Camera cam, GLuint* shader)
+{
+	if (level.NbParticles() == 0)
+		return;
+
+	// Retrieve raw vertex & index buffers from the GameObject
+	float* verts = level.ParticleAt(0)->Geometry().GetData();
+	size_t vertCount = level.ParticleAt(0)->Geometry().GetCount();
+	unsigned int* indices = level.ParticleAt(0)->Geometry().GetIndices();
+
+	// If a different shader has been provided than from the last draw call, change to that.
+	if (shader != nullptr)
+	{
+		if (mCurrentShader != *shader)
+		{
+			glUseProgram(*shader);
+			mCurrentShader = *shader;
+		}
+	}
+
+	for (size_t i = 0; i < level.NbParticles(); i++)
+	{
+		// Bind vertex array & buffer objects and feed with geometry data
+		glBindVertexArray(mVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+		glBufferData(GL_ARRAY_BUFFER, vertCount * 3 * sizeof(float), verts, GL_STATIC_DRAW);
+		// Vertex Position
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
+		glEnableVertexAttribArray(0);
+		// Unbind vertex buffer object
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		// Get model, view & projection matrices
+		glm::mat4* mvp = getTransform(*level.ParticleAt(i), cam);
+		float* model = mat4ToRaw(mvp[0]), * view = mat4ToRaw(mvp[1]), * proj = mat4ToRaw(mvp[2]);
+
+		// Pass the transform matrices to shader
+		glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_Model"), 1, false, model);
+		glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_View"), 1, false, view);
+		glUniformMatrix4fv(glGetUniformLocation(mCurrentShader, "_Proj"), 1, false, proj);
+
+		// Calculate particle opacity based on its lifetime
+		float opacity = 0.0f;
+		if (level.ParticleAt(i)->LifeDuration() > 0.0f)
+		{
+			opacity = std::fmax(0.f, std::fmin(1.f, 1.f - level.ParticleAt(i)->TimeLived() / level.ParticleAt(i)->LifeDuration()));
+		}
+		glUniform1f(glGetUniformLocation(mCurrentShader, "_Opacity"), opacity);
+
+		// Non-indexed draw call for this object's triangles
+		// Indexed draw exhibited severe flicker so all meshes are remapped to be unindexed on import (ie. contain duplicate triangles)
+		glDrawArrays(GL_TRIANGLES, 0, vertCount);
+
+		// Unbind vertex array object
+		glBindVertexArray(0);
+
+		// Cleanup to stop memory leaks
+		delete[] mvp;
+		delete[] model;
+		delete[] view;
+		delete[] proj;
+	}
+	delete[] verts;
+}
+
 GLFWwindow* Renderer::Window()
 {
 	return mWindow;
@@ -178,7 +247,7 @@ glm::mat4* Renderer::getTransform(GameObject& obj, Camera cam)
 	glm::quat modelRot(worldTransform.q.w, worldTransform.q.x, worldTransform.q.y, worldTransform.q.z);
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), modelPos);
 	model *= glm::mat4_cast(modelRot);
-	model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f)); // TODO: no scaling for now
+	model = glm::scale(model, glm::vec3(obj.Scale().X(), obj.Scale().Y(), obj.Scale().Z())); // TODO: no scaling for now
 
 	physx::PxVec3 camPos = cam.Position();
 	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(camPos.x, camPos.y, camPos.z) * -1.0f);
