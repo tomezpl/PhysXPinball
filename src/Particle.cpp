@@ -12,11 +12,17 @@ Particle::Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType
 	{
 	case ParticleType::ePARTICLE_SPARK:
 		mDuration = 0.33f;
+
+		// Initialise the spark mesh if it hasn't been initialised yet. It should be of fairly low complexity.
 		if (_SparkMesh == nullptr)
 		{
 			_SparkMesh = new Mesh(Mesh::createSphere(cooking, 0.05f, 4, 2));
 		}
+
+		// Reuse the mesh
 		Geometry(*_SparkMesh);
+
+		// Disable collision for particles for better performance.
 		SetupFiltering(FilterGroup::ePARTICLE, 0);
 	}
 
@@ -25,6 +31,8 @@ Particle::Particle(physx::PxCooking* cooking, physx::PxVec3 origin, ParticleType
 	mTimeLived = 0.0f;
 	mKill = false;
 
+	// This will indicate that the particle is yet to have its initial force applied.
+	// That force will be applied on the first call to Advance(dt)
 	mFirstFrame = true;
 }
 

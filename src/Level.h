@@ -14,6 +14,13 @@ namespace Pinball {
 			*mBall, // 6
 			*mFloor; // 7
 
+		// Particles in this level
+		// Be careful when iterating over this vector, as dead particles will be deleted and marked with a nullptr, 
+		// but will still remain inbetween live particles in this vector until they are replaced by new ones.
+		// This means that the more often the particles are spawned (and the more of them at once), the bigger memory consumption for this will be.
+		// The vector size thus doesn't represent how many live (valid) particles there are.
+		// NbParticles() returns the number of valid particles.
+		// ParticleAt(i) can return the particle given 0 <= i < NbParticles()
 		std::vector<Particle*> mParticles;
 
 		physx::PxScene* mScenePtr;

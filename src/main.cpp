@@ -105,8 +105,6 @@ public:
 
 			physx::PxContactStreamIterator iter(cp.contactPatches, cp.contactPoints, cp.getInternalFaceIndices(), cp.patchCount, cp.contactCount);
 
-			const float* impulses = cp.contactImpulses;
-
 			unsigned int flippedContacts = (cp.flags & physx::PxContactPairFlag::eINTERNAL_CONTACTS_ARE_FLIPPED);
 			unsigned int hasImpulses = (cp.flags & physx::PxContactPairFlag::eINTERNAL_HAS_IMPULSES);
 			unsigned int nbContacts = 0;
