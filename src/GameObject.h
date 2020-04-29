@@ -6,23 +6,6 @@ namespace Pinball
 {
 	class GameObject; // forward decl
 
-	class ObjectScale
-	{
-		friend class GameObject;
-	private:
-		physx::PxVec3 mScale;
-		physx::PxMeshScale mMeshScale;
-	public:
-		ObjectScale();
-
-		float X();
-		void X(float x);
-		float Y();
-		void Y(float y);
-		float Z();
-		void Z(float z);
-	};
-
 	struct FilterGroup
 	{
 		enum Enum
@@ -48,8 +31,6 @@ namespace Pinball
 		float mCOR; // coefficient of restitution
 
 		std::string mName;
-
-		ObjectScale mObjScale;
 	protected:
 		void destroy();
 	public:
@@ -68,8 +49,6 @@ namespace Pinball
 		void Transform(physx::PxTransform transform);
 
 		void SetupFiltering(unsigned int filterGroup, unsigned int filterMask);
-
-		ObjectScale& Scale();
 
 		~GameObject();
 	};

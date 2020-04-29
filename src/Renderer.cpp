@@ -301,7 +301,6 @@ glm::mat4* Renderer::getTransform(GameObject& obj, Camera cam)
 	glm::quat modelRot(worldTransform.q.w, worldTransform.q.x, worldTransform.q.y, worldTransform.q.z);
 	glm::mat4 model = glm::translate(glm::mat4(1.0f), modelPos);
 	model *= glm::mat4_cast(modelRot);
-	model = glm::scale(model, glm::vec3(obj.Scale().X(), obj.Scale().Y(), obj.Scale().Z())); // TODO: no scaling for now
 
 	physx::PxVec3 camPos = cam.Position();
 	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(camPos.x, camPos.y, camPos.z) * -1.0f);

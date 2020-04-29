@@ -26,16 +26,6 @@ void GameObject::Geometry(Mesh& mesh, GameObject::Type type, float sf, float df,
 {
 	mMesh = Mesh(mesh);
 
-	physx::PxMeshScale scale = physx::PxMeshScale(mObjScale.mScale);
-
-	switch (mMesh.GetPxGeometry()->getType())
-	{
-	case physx::PxGeometryType::eCONVEXMESH:
-		((physx::PxConvexMeshGeometry*)mMesh.GetPxGeometry())->scale = scale;
-	case physx::PxGeometryType::eTRIANGLEMESH:
-		((physx::PxTriangleMeshGeometry*)mMesh.GetPxGeometry())->scale = scale;
-	}
-
 	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *PxGetPhysics().createMaterial(sf, df, cor), true) }; // TODO: won't this cause a memory leak on reinitialisation?
 
 	if (mMesh.GetMeshType() == Mesh::MeshType::Plane)
@@ -124,11 +114,6 @@ void GameObject::SetupFiltering(unsigned int filterGroup, unsigned int filterMas
 	delete[] shapes;
 }
 
-ObjectScale& GameObject::Scale()
-{
-	return mObjScale;
-}
-
 void GameObject::destroy()
 {
 	for (size_t i = 0; i < mShapes.size(); i++)
@@ -147,40 +132,4 @@ void GameObject::destroy()
 GameObject::~GameObject()
 {
 	destroy();
-}
-
-ObjectScale::ObjectScale()
-{
-	mScale = physx::PxVec3(1.0f);
-	mMeshScale = physx::PxMeshScale(mScale);
-}
-
-float ObjectScale::X()
-{
-	return mScale.x;
-}
-
-void ObjectScale::X(float x)
-{
-	mScale.x = x;
-}
-
-float ObjectScale::Y()
-{
-	return mScale.y;
-}
-
-void ObjectScale::Y(float y)
-{
-	mScale.y = y;
-}
-
-float ObjectScale::Z()
-{
-	return mScale.z;
-}
-
-void ObjectScale::Z(float z)
-{
-	mScale.z = z;
 }
