@@ -1,3 +1,40 @@
+// Tomasz Zajac (ZAJ15618587), CGP3012M Assignment 1 (2020)
+// Pinball Game
+//
+// # BUILDING:
+// ## Dependencies:
+// The game requires GLFW3 for OpenGL window creation, GLM for mathematics, 
+// Assimp for importing level data from .obj files and PhysX for physics simulation.
+// 
+// GLFW3, GLM and Assimp are added to this project via NuGet. They should be resolved automatically.
+// PhysX 3.4.2 is included via the PHYSX_SDK environment variable (Windows).
+//
+// # USAGE:
+// The game sets the ball in the plunger area. Holding down Right Shift key will build the ball's launch force,
+// releasing Right Shift key will launch the ball.
+//
+// Left and Right arrow keys are used to control the flippers.
+//
+// If the ball touches the bottom of the table and is too slow, the player loses.
+//
+// Flippers are implemented using spherical joints. In theory, revolute joints should have been used instead,
+// but I could not get angular motion to work properly on the Y-axis using revolute. 
+// The flippers have infinite mass and their angular velocity is set on a per-frame basis, so they should behave just like revolute joints would.
+//
+// CCD is enabled for the flippers & ball to avoid tunneling at high velocities or low framerate/instable simulation steps.
+// The simulation callback is able to cause effects in the game by the global game state struct.
+//
+// Different objects in the game have different physic materials, properties and behaviours.
+// For example, the ball and the bumpers have very high restitution, making them bouncy.
+// The table has some slight friction to avoid the ball constantly bouncing up and down when it hits the bottom of the table.
+// When the ball slides on the ramp at the top of the table, it will gain a "boost", multiplying its current XZ velocity by a scalar.
+//
+// When a ball scratches a surface, it emits spark particles at the contact point.
+// 
+// # REFERENCES, EXTERNAL SOURCES:
+// NVIDIA's PhysX manual, Web forums and the SDK sample code (e.g. RendererCapsuleShape) was reused in parts of this program.
+// Sean Barrett's (github:nothings) stb_image.h was used for drawing 2D images, such as the "game over" screen.
+
 // C++ std libs
 #include <vector>
 #include <map>
@@ -57,6 +94,7 @@ public:
 	virtual void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
 	{
 		// Check for collision with particular objects
+		// TODO: this *could* be faster (and safer) by checking simulation filter flags instead
 		bool ballFound = strContains(pairHeader.actors[0]->getName(), "Ball") || strContains(pairHeader.actors[1]->getName(), "Ball");
 		bool tableFound = strContains(pairHeader.actors[0]->getName(), "Table") || strContains(pairHeader.actors[1]->getName(), "Table");
 		bool floorFound = strContains(pairHeader.actors[0]->getName(), "Floor") || strContains(pairHeader.actors[1]->getName(), "Floor");
