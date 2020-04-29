@@ -184,7 +184,7 @@ int main(int* argc, char** argv)
 	sparkShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Spark.vert"), getFileContents("GLSL/Spark.frag"));
 	imgShader = Pinball::Renderer::compileShader(getFileContents("GLSL/Image2D.vert"), getFileContents("GLSL/Image2D.frag"));
 
-	// game-over screen image
+	// Game-over screen image
 	Pinball::Image gameOverImg("Images/gameover.png");
 	gfx.CreateTexture(gameOverImg);
 
