@@ -3,7 +3,7 @@
 #include "Vertex.h"
 #include <PxPhysicsAPI.h>
 #include <vector>
-#include <3rdparty/tiny_obj_loader.h>
+#include <string>
 
 namespace Pinball
 {

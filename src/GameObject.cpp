@@ -1,5 +1,4 @@
 #include "GameObject.h"
-#include "Middleware.h"
 #include <glm/glm.hpp>
 
 using namespace Pinball;

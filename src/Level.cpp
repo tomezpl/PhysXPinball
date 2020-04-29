@@ -1,6 +1,8 @@
 #include "Level.h"
 #include "Util.h"
 
+#include <map>
+
 using namespace Pinball;
 
 // Initialise pointers
