@@ -44,18 +44,34 @@ namespace Pinball {
 		
 		void init();
 	public:
+		// Getters for each object in the scene:
+		// Left flipper
 		GameObject* const FlipperL();
+		// Right flipper
 		GameObject* const FlipperR();
+		// Left flipper hinge
 		GameObject* const HingeL();
+		// Right flipper hinge
 		GameObject* const HingeR();
+		// Ramp at the top of the table
 		GameObject* const Ramp();
+		// Table
 		GameObject* const Table();
+		// Pinball
 		GameObject* const Ball();
+		// Floor (separate from Table to filter collisions)
 		GameObject* const Floor();
+
+		// Bumpers:
+		// Bumper 1-3 (1 <= index <= 3)
 		GameObject* const Bumper(int index);
+		// Left Bumper (above left flipper)
 		GameObject* const BumperL();
+		// Right Bumper (above right flipper)
 		GameObject* const BumperR();
+		// Bottom left Bumper (bottom left corner of table)
 		GameObject* const BumperBL();
+		// Bottom right Bumper (bottom right corner of table)
 		GameObject* const BumperBR();
 
 		// Returns PxActors for all objects
@@ -84,10 +100,15 @@ namespace Pinball {
 		// Emits multiple particles
 		void SpawnParticles(physx::PxCooking* cooking, size_t count, ParticleType type, physx::PxVec3 origin);
 
+		// Sets a scene pointer for particle emission etc.
 		void SetScene(physx::PxScene* scenePtr);
 
+		// Default constructor
 		Level();
+
+		// Creates a Level from mesh and origin point files
 		Level(std::string meshFilePath, std::string originFilePath, physx::PxCooking* cooking);
+		// Loads objects from mesh and origin point files
 		void Load(std::string meshFilePath, std::string originFilePath, physx::PxCooking* cooking);
 
 		~Level();

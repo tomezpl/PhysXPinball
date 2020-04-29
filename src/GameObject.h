@@ -39,15 +39,20 @@ namespace Pinball
 
 		GameObject();
 		GameObject(Mesh& geometry, Type actorType = Type::Dynamic, float staticFriction = 0.f, float kineticFriction = 0.f, float restitution = 0.f, std::string name = "", ColliderType colliderType = ColliderType::Collider);
+
 		Mesh Geometry();
 		void Geometry(Mesh& mesh, Type actorType = Type::Dynamic, float staticFriction = 0.f, float kineticFriction = 0.f, float restitution = 0.f, ColliderType colliderType = ColliderType::Collider);
+
 		physx::PxActor* GetPxActor();
 		physx::PxRigidActor* GetPxRigidActor();
+
 		std::string Name();
 		void Name(std::string name);
+
 		physx::PxTransform Transform();
 		void Transform(physx::PxTransform transform);
 
+		// Configure collision filtering. filterGroup is the object's FilterGroup, filterMask is a logical OR combination of collider FilterGroups.
 		void SetupFiltering(unsigned int filterGroup, unsigned int filterMask);
 
 		~GameObject();

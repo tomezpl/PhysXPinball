@@ -5,6 +5,7 @@ namespace Pinball
 	class Light
 	{
 		public:
+			// constant, linear and quadratic term for point lights
 			float kc = 1.0f, kl = 0.09f, kq = 0.032f;
 			glm::vec3 color;
 			glm::vec3 pointPos, dir;

@@ -273,7 +273,7 @@ std::vector<Vertex> Mesh::GetDataVector()
 	return mVertices;
 }
 
-// Assigns the vertex buffer and creates a convex PhysX mesh
+// Assigns the vertex buffer and creates a PhysX mesh
 void Mesh::SetVertices(std::vector<Vertex> vertices, physx::PxCooking* cooking, std::vector<unsigned int> indices, Mesh::MeshType meshType, bool updatePx)
 {
 	// TODO: shouldn't I delete each vertex first? they contain raw pointers

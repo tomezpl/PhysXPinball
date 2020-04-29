@@ -306,9 +306,6 @@ glm::mat4* Renderer::getTransform(GameObject& obj, Camera cam)
 	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(camPos.x, camPos.y, camPos.z) * -1.0f);
 	physx::PxQuat camOrient = cam.Orientation();
 	view *= glm::mat4_cast(glm::quat(camOrient.w, camOrient.x, camOrient.y, camOrient.z));
-	/*view = glm::rotate(view, glm::radians(camRot.x), glm::vec3(1.f, 0.f, 0.f));
-	view = glm::rotate(view, glm::radians(camRot.y), glm::vec3(0.f, 1.f, 0.f));
-	view = glm::rotate(view, glm::radians(camRot.z), glm::vec3(0.f, 0.f, 1.f));*/
 
 	glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)mWidth / (float)mHeight, 0.01f, 1000.0f);
 

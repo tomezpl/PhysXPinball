@@ -26,7 +26,8 @@ void GameObject::Geometry(Mesh& mesh, GameObject::Type type, float sf, float df,
 {
 	mMesh = Mesh(mesh);
 
-	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *PxGetPhysics().createMaterial(sf, df, cor), true) }; // TODO: won't this cause a memory leak on reinitialisation?
+	// Create this object's shape with the given physic material properties
+	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *PxGetPhysics().createMaterial(sf, df, cor), true) };
 
 	if (mMesh.GetMeshType() == Mesh::MeshType::Plane)
 	{
@@ -116,6 +117,7 @@ void GameObject::SetupFiltering(unsigned int filterGroup, unsigned int filterMas
 
 void GameObject::destroy()
 {
+	// Release resources to avoid memory leaks
 	for (size_t i = 0; i < mShapes.size(); i++)
 	{
 		if (mShapes[i] != nullptr && mShapes[i]->isReleasable())

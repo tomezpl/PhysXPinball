@@ -68,6 +68,7 @@ void Particle::Advance(float deltaTime)
 		((physx::PxRigidDynamic*)GetPxActor())->addForce(physx::PxVec3(randomX, randomY, randomZ) * strength);
 	}
 
+	// Prevent adding initial force after this frame
 	mFirstFrame = false;
 }
 

@@ -28,6 +28,7 @@ namespace Pinball
 {
 	class Renderer;
 
+	// 2D Image
 	class Image {
 		friend class Renderer;
 	private:
@@ -76,19 +77,24 @@ namespace Pinball
 
 		void Create(std::string name, int width, int height);
 
+		// Draws an object's Mesh
 		void Draw(GameObject& object, Camera camera, std::vector<Light> lights, GLuint* shader = nullptr);
 
-		// If drawing multiple particles of the same type, use DrawParticles, as it only copies the particle geometry once.
-		// This assumes that ALL particles in the level are of the same type.
+		// Draws particles in the level
+		// This assumes that ALL particles in the level are of the same type, and as such will use one shader.
 		void DrawParticles(Level& level, Camera camera, GLuint* shader = nullptr);
 
+		// Creates OpenGL 2D texture handle for 2D image
 		void CreateTexture(Image& img);
 
 		// Draw a 2D image somewhere on the screen
+		// The image first needs to have a valid OpenGL texture handle from CreateTexture
 		void DrawImage(Image& image, float x, float y, float width, float height, GLuint* shader = nullptr);
 		
+		// Returns window handle
 		GLFWwindow* Window();
 
+		// Compiles a shader from vertex and fragment shader source code
 		static unsigned int compileShader(std::string vertexShaderSource, std::string fragmentShaderSource);
 	};
 }
