@@ -16,8 +16,11 @@
 #include "Util.h"
 
 Pinball::Level* gLevel = nullptr;
+
+// Game state. Kept as a global struct so it can be accessed from the simulation callback.
 struct
 {
+	// Should the game trigger the game-over state?
 	bool notifyLoss = false;
 
 	// For spawning particles upon ball contact
@@ -29,6 +32,10 @@ struct
 
 	// Coordinates of the game-over area (namely the Z-coordinate would be used to determine game-over state)
 	physx::PxVec3 gameOverArea = physx::PxVec3();
+
+	// Minimum velocity allowed within the game-over area before game-over state is triggered.
+	// In other words, if the ball is kept above this velocity, the player is still able to get it back to the play area.
+	const float gameOverVelocity = 1.5f;
 
 	// Game-Over screen duration
 	const float gameOverDuration = 3.0f;
@@ -76,32 +83,22 @@ public:
 		//std::cerr << "Contact found between " << pairHeader.actors[0]->getName() << " " << pairHeader.actors[1]->getName() << std::endl;
 
 		// Check for collision with particular objects
-		bool ballFound = false;
-		bool tableFound = false;
-		bool floorFound = false;
-		physx::PxVec3 ballPos;
-		if (strContains(pairHeader.actors[0]->getName(), "Ball") || strContains(pairHeader.actors[1]->getName(), "Ball"))
-		{
-			ballFound = true;
-		}
-		if (strContains(pairHeader.actors[0]->getName(), "Table") || strContains(pairHeader.actors[1]->getName(), "Table"))
-		{
-			tableFound = true;
-		}
-		if (strContains(pairHeader.actors[0]->getName(), "Floor") || strContains(pairHeader.actors[1]->getName(), "Floor"))
-		{
-			floorFound = true;
-		}
+		bool ballFound = strContains(pairHeader.actors[0]->getName(), "Ball") || strContains(pairHeader.actors[1]->getName(), "Ball");
+		bool tableFound = strContains(pairHeader.actors[0]->getName(), "Table") || strContains(pairHeader.actors[1]->getName(), "Table");
+		bool floorFound = strContains(pairHeader.actors[0]->getName(), "Floor") || strContains(pairHeader.actors[1]->getName(), "Floor");
+		bool rampFound = strContains(pairHeader.actors[0]->getName(), "Ramp") || strContains(pairHeader.actors[1]->getName(), "Ramp");
+		physx::PxRigidDynamic* ball = (physx::PxRigidDynamic*)gLevel->Ball()->GetPxActor();
+		physx::PxVec3 ballVelocity = ball->getLinearVelocity();
+		physx::PxVec3 ballPos = ball->getGlobalPose().p;
 
-		//std::cout << "ballFound: " << (!ballFound ? "false" : "true") << ", tableFound: " << (!tableFound ? "false" : "true") << std::endl;
 		if (ballFound)
 		{
-			ballPos = gLevel->Ball()->Transform().p;
 			gGameState.newParticleOrigin = ballPos;
 			gGameState.spawnParticles = !floorFound; // don't generate spark particles on persistent contact with floor, there's too many of them
 			if (tableFound)
 			{
-				if (ballPos.z >= gGameState.gameOverArea.z && std::fabs(ballPos.x - gGameState.plungerArea.x) > 0.5f)
+				// Trigger game-over state as 
+				if (ballPos.z >= gGameState.gameOverArea.z && std::fabs(ballPos.x - gGameState.gameOverArea.x) > 0.5f && ballVelocity.magnitude() <= gGameState.gameOverVelocity)
 				{
 					gGameState.notifyLoss = true;
 				}
@@ -140,6 +137,17 @@ public:
 			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
 			{
 				std::cerr << "onContact::eNOTIFY_TOUCH_FOUND" << std::endl;
+			}
+			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
+			{
+				if (rampFound && ballFound)
+				{
+					const float boost = 1.025f; // XZ boost given to the ball's velocity when sliding across the ramp
+					ballVelocity.x *= boost;
+					ballVelocity.z *= boost;
+
+					ball->setLinearVelocity(ballVelocity);
+				}
 			}
 			//check eNOTIFY_TOUCH_LOST
 			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
