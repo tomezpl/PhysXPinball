@@ -6,13 +6,27 @@
 namespace Pinball {
 	class Level {
 	private:
+		// Objects in this level:
 		GameObject
+			// Flippers
 			*mFlipperL, *mFlipperR, // 0 1
+			// Hinges for flippers
 			*mHingeL, *mHingeR, // 2 3
+			// Ramp (boosts the ball when in persistent contact)
 			*mRamp, // 4
+			// Table (play area)
 			*mTable, // 5
+			// Ball
 			*mBall, // 6
-			*mFloor; // 7
+			// Floor (separate from Table)
+			*mFloor, // 7
+
+			// Bumpers: 3 circular bumpers in a triangle formation at the top of the table
+			*mBumper1, *mBumper2, *mBumper3, // 8 9 10
+			// + two bumpers above each flipper (BumperL and BumperR)
+			*mBumperL, *mBumperR, // 11 12
+			// + two bumpers put in bottom corners of the table to act as "last resort" (BumperBL and BumperBR)
+			*mBumperBL, *mBumperBR; // 13 14
 
 		// Particles in this level
 		// Be careful when iterating over this vector, as dead particles will be deleted and marked with a nullptr, 
@@ -35,6 +49,11 @@ namespace Pinball {
 		GameObject* const Table();
 		GameObject* const Ball();
 		GameObject* const Floor();
+		GameObject* const Bumper(int index);
+		GameObject* const BumperL();
+		GameObject* const BumperR();
+		GameObject* const BumperBL();
+		GameObject* const BumperBR();
 
 		// Returns PxActors for all objects
 		// Useful for adding to scene in one call

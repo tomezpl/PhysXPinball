@@ -24,6 +24,21 @@ void Level::init()
 	if (!mFloor)
 		mFloor = new GameObject();
 
+	if (!mBumper1)
+		mBumper1 = new GameObject();
+	if (!mBumper2)
+		mBumper2 = new GameObject();
+	if (!mBumper3)
+		mBumper3 = new GameObject();
+	if (!mBumperL)
+		mBumperL = new GameObject();
+	if (!mBumperR)
+		mBumperR = new GameObject();
+	if (!mBumperBL)
+		mBumperBL = new GameObject();
+	if (!mBumperBR)
+		mBumperBR = new GameObject();
+
 	mScenePtr = nullptr;
 }
 
@@ -67,9 +82,44 @@ GameObject* const Level::Floor()
 	return mFloor;
 }
 
+GameObject* const Level::Bumper(int i)
+{
+	switch (i)
+	{
+	case 1:
+		return mBumper1;
+	case 2:
+		return mBumper2;
+	case 3:
+		return mBumper3;
+	default:
+		return nullptr;
+	}
+}
+
+GameObject* const Level::BumperL()
+{
+	return mBumperL;
+}
+
+GameObject* const Level::BumperR()
+{
+	return mBumperR;
+}
+
+GameObject* const Level::BumperBL()
+{
+	return mBumperBL;
+}
+
+GameObject* const Level::BumperBR()
+{
+	return mBumperBR;
+}
+
 physx::PxActor* const* Level::AllActors()
 {
-	return new physx::PxActor * const [8]
+	return new physx::PxActor * const [15]
 	{
 		mFlipperL->GetPxActor(),
 		mFlipperR->GetPxActor(),
@@ -78,7 +128,14 @@ physx::PxActor* const* Level::AllActors()
 		mRamp->GetPxActor(),
 		mTable->GetPxActor(),
 		mBall->GetPxActor(),
-		mFloor->GetPxActor()
+		mFloor->GetPxActor(),
+		mBumper1->GetPxActor(),
+		mBumper2->GetPxActor(),
+		mBumper3->GetPxActor(),
+		mBumperL->GetPxActor(),
+		mBumperR->GetPxActor(),
+		mBumperBL->GetPxActor(),
+		mBumperBR->GetPxActor()
 	};
 }
 
@@ -102,6 +159,20 @@ GameObject* const Level::At(size_t i)
 		return mBall;
 	case 7:
 		return mFloor;
+	case 8:
+		return mBumper1;
+	case 9:
+		return mBumper2;
+	case 10:
+		return mBumper3;
+	case 11:
+		return mBumperL;
+	case 12:
+		return mBumperR;
+	case 13:
+		return mBumperBL;
+	case 14:
+		return mBumperBR;
 	default:
 		return nullptr;
 	}
@@ -127,6 +198,20 @@ physx::PxActor* const Level::ActorAt(size_t i)
 		return mBall->GetPxActor();
 	case 7:
 		return mFloor->GetPxActor();
+	case 8:
+		return mBumper1->GetPxActor();
+	case 9:
+		return mBumper2->GetPxActor();
+	case 10:
+		return mBumper3->GetPxActor();
+	case 11:
+		return mBumperL->GetPxActor();
+	case 12:
+		return mBumperR->GetPxActor();
+	case 13:
+		return mBumperBL->GetPxActor();
+	case 14:
+		return mBumperBR->GetPxActor();
 	default:
 		return nullptr;
 	}
@@ -156,7 +241,7 @@ Particle* const Level::ParticleAt(size_t index)
 
 size_t Level::NbActors()
 {
-	return 8;
+	return 15;
 }
 
 size_t Level::NbParticles()
@@ -259,7 +344,12 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 	std::vector<Mesh> meshes = Mesh::fromFile(meshFilePath, cooking);
 
 	// Origin points for each object
-	std::vector<Mesh> origins = Mesh::fromFile(originFilePath, nullptr, false);
+	std::vector<Mesh> originPoints = Mesh::fromFile(originFilePath, nullptr, false);
+	std::map<std::string, Mesh> origins;
+	for (size_t i = 0; i < originPoints.size(); i++)
+	{
+		origins[originPoints[i].Name()] = originPoints[i];
+	}
 
 	for (size_t i = 0; i < meshes.size(); i++)
 	{
@@ -304,8 +394,39 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 		{
 			objToAssign = mHingeR;
 		}
+		else if (strContains(meshName, "Bumper"))
+		{
+			if (strContains(meshName, "1"))
+			{
+				objToAssign = mBumper1;
+			}
+			else if (strContains(meshName, "2"))
+			{
+				objToAssign = mBumper2;
+			}
+			else if (strContains(meshName, "3"))
+			{
+				objToAssign = mBumper3;
+			}
+			else if (strContains(meshName, "BL"))
+			{
+				objToAssign = mBumperBL;
+			}
+			else if (strContains(meshName, "BR"))
+			{
+				objToAssign = mBumperBR;
+			}
+			else if (strContains(meshName, "L"))
+			{
+				objToAssign = mBumperL;
+			}
+			else if (strContains(meshName, "R"))
+			{
+				objToAssign = mBumperR;
+			}
+		}
 
-		if (strContains("Ball FlipperL FlipperR HingeL HingeR Table Floor Ramp", meshName))
+		if (strContains("Ball FlipperL FlipperR HingeL HingeR Table Floor Ramp Bumper1 Bumper2 Bumper3 BumperL BumperR BumperBL BumperBR", meshName))
 		{
 			// physic material properties
 			float sf = 0.0f, df = 0.0f, cor = 0.0f;
@@ -313,27 +434,76 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 			// Set different properties for different types of objects
 			if(strContains("Ball", meshName))
 			{
-				df = 0.2f;
-				cor = 0.3f;
+				cor = 0.9f;
 			}
-			else if (strContains("Table", meshName) || strContains(meshName, "Hinge"))
+			else if (strContains("Table", meshName))
+			{
+				cor = 0.3f;
+				df = 0.4f;
+				sf = 0.2f;
+			}
+			else if (strContains(meshName, "Bumper"))
 			{
 				cor = 1.0f;
-				df = 0.0f;
-			}
-			else if (strContains("Ramp", meshName))
-			{
-				cor = 0.0f;
 			}
 
 			objToAssign->Geometry(meshes[i], objType, sf, df, cor);
+
+			// Set collision filtering flags
+			if (strContains("Ball", meshName))
+			{
+				objToAssign->SetupFiltering(FilterGroup::eBALL, FilterGroup::eFLIPPER | FilterGroup::eFLOOR | FilterGroup::eTABLE | FilterGroup::eBUMPER);
+			}
+			else if (strContains("Table", meshName) || strContains("Ramp", meshName) || strContains(meshName, "Hinge"))
+			{
+				objToAssign->SetupFiltering(FilterGroup::eTABLE, FilterGroup::eBALL);
+			}
+			else if (strContains("Floor", meshName))
+			{
+				objToAssign->SetupFiltering(FilterGroup::eFLOOR, FilterGroup::eBALL);
+			}
+			else if (strContains(meshName, "Bumper"))
+			{
+				objToAssign->SetupFiltering(FilterGroup::eBUMPER, FilterGroup::eBALL);
+			}
+			else if (strContains(meshName, "Flipper"))
+			{
+				objToAssign->SetupFiltering(FilterGroup::eFLIPPER, FilterGroup::eBALL);
+			}
+
+			// Set colours
+			if (strContains(meshName, "Ball"))
+			{
+				objToAssign->Geometry().Color(1.f, 1.f, 1.f);
+			}
+			else if (strContains(meshName, "Table") || strContains(meshName, "Ramp") || strContains(meshName, "Floor"))
+			{
+				objToAssign->Geometry().Color(193.f / 255.f, 154.f / 255.f, 107.f / 255.f);
+			}
+			else if (strContains(meshName, "BumperB") || strContains(meshName, "Hinge"))
+			{
+				objToAssign->Geometry().Color(193.f / 255.f * 0.75f, 154.f / 255.f * 0.75f, 107.f / 255.f * 0.75f);
+			}
+			else if (strContains(meshName, "BumperL") || strContains(meshName, "BumperR"))
+			{
+				objToAssign->Geometry().Color(0.75f, 0.f, 0.f);
+			}
+			else if (strContains(meshName, "Bumper"))
+			{
+				objToAssign->Geometry().Color(0.f, 0.33f, 0.66f);
+			}
+			else
+			{
+				objToAssign->Geometry().Color(0.5f, 0.5f, 0.5f);
+			}
+
 			if (objType == GameObject::Dynamic)
 			{
 				((physx::PxRigidDynamic*)objToAssign->GetPxActor())->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, true);
 			}
 			objToAssign->Name(meshName);
-			objToAssign->Transform(physx::PxTransform(origins[i].GetCenterPoint(), physx::PxQuat(physx::PxIdentity)));
-			objToAssign->Geometry().Color(0.5f, 0.5f, 0.5f);
+			objToAssign->Transform(physx::PxTransform(origins[meshName].GetCenterPoint(), physx::PxQuat(physx::PxIdentity)));
+
 		}
 	}
 }

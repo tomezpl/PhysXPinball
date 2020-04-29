@@ -32,6 +32,7 @@ namespace Pinball
 			eTABLE = (1 << 2),
 			eFLOOR = (1 << 3),
 			ePARTICLE = (1 << 4),
+			eBUMPER = (1 << 5),
 		};
 	};
 

@@ -35,7 +35,7 @@ struct
 
 	// Minimum velocity allowed within the game-over area before game-over state is triggered.
 	// In other words, if the ball is kept above this velocity, the player is still able to get it back to the play area.
-	const float gameOverVelocity = 1.5f;
+	const float gameOverVelocity = 3.0f;
 
 	// Game-Over screen duration
 	const float gameOverDuration = 3.0f;
@@ -319,19 +319,6 @@ int main(int* argc, char** argv)
 	flipperJointR->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
 	flipperJointR->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
 
-	gLevel->FlipperL()->SetupFiltering(Pinball::FilterGroup::eFLIPPER, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
-	gLevel->FlipperR()->SetupFiltering(Pinball::FilterGroup::eFLIPPER, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
-	gLevel->HingeL()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
-	gLevel->HingeR()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
-
-	gLevel->Ball()->SetupFiltering(Pinball::FilterGroup::eBALL, 
-		Pinball::FilterGroup::eTABLE | 
-		Pinball::FilterGroup::eFLIPPER | 
-		Pinball::FilterGroup::eFLOOR);
-	gLevel->Ramp()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
-	gLevel->Table()->SetupFiltering(Pinball::FilterGroup::eTABLE, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
-	gLevel->Floor()->SetupFiltering(Pinball::FilterGroup::eFLOOR, Pinball::FilterGroup::eBALL | Pinball::FilterGroup::ePARTICLE);
-
 	tableObj.Geometry().Color(0.375f, 0.375f, 0.375f);
 	ballObj.Geometry().Color(0.5f, 0.5f, 1.f);
 
@@ -357,7 +344,6 @@ int main(int* argc, char** argv)
 	// Prepare lights
 	std::vector<Pinball::Light> lights = {
 		Pinball::Light(glm::vec3(), glm::vec3(0.0f, -5.0f, 0.0f), glm::vec3(1.0, 1.0, 1.0)), // Sun light
-		Pinball::Light(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(), glm::vec3(1.0f, 0.0f, 0.0f)),
 		Pinball::Light(glm::vec3(12.5f, 2.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)),
 		Pinball::Light(glm::vec3(-12.5f, 2.0f, 10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)),
 		Pinball::Light(glm::vec3(-12.5f, 2.0f, -10.0f), glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)),
@@ -454,10 +440,6 @@ int main(int* argc, char** argv)
 			gGameState.notifyLoss = false;
 			gGameState.gameOverTime = 0.0f;
 		}
-
-		// Attach light to ball
-		physx::PxVec3 bp = gLevel->Ball()->Transform().p;
-		lights[1].pointPos = glm::vec3(bp.x, bp.y + 1.0f, bp.z);
 
 		// Spawn particles around ball upon contact
 		if (gGameState.spawnParticles)
