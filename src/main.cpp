@@ -23,6 +23,9 @@ struct
 	// Should the game trigger the game-over state?
 	bool notifyLoss = false;
 
+	// For boosting the ball when sliding across the ramp
+	bool rampBoostActive = false;
+
 	// For spawning particles upon ball contact
 	bool spawnParticles = false;
 	physx::PxVec3 newParticleOrigin = physx::PxVec3();
@@ -142,11 +145,7 @@ public:
 			{
 				if (rampFound && ballFound)
 				{
-					const float boost = 1.025f; // XZ boost given to the ball's velocity when sliding across the ramp
-					ballVelocity.x *= boost;
-					ballVelocity.z *= boost;
-
-					ball->setLinearVelocity(ballVelocity);
+					gGameState.rampBoostActive = true;
 				}
 			}
 			//check eNOTIFY_TOUCH_LOST
@@ -441,16 +440,24 @@ int main(int* argc, char** argv)
 			gGameState.gameOverTime = 0.0f;
 		}
 
+		// Ball velocity
+		physx::PxVec3 ballV = ((physx::PxRigidDynamic*)gLevel->Ball()->GetPxActor())->getLinearVelocity();
 		// Spawn particles around ball upon contact
 		if (gGameState.spawnParticles)
 		{
 			// minimum velocity to spawn spark particles
 			float minSpeed = 3.0f;
-			physx::PxVec3 ballV = ((physx::PxRigidDynamic*)gLevel->Ball()->GetPxActor())->getLinearVelocity();
 			if (ballV.magnitude() > minSpeed)
 			{
 				gLevel->SpawnParticles(cooking, 3, Pinball::ParticleType::ePARTICLE_SPARK, gGameState.newParticleOrigin);
 			}
+		}
+
+		if (gGameState.rampBoostActive)
+		{
+			const float boost = 1.025f; // XZ boost given to the ball's velocity when sliding across the ramp
+			((physx::PxRigidDynamic*)gLevel->Ball()->GetPxActor())->setLinearVelocity(physx::PxVec3(ballV.x*boost, ballV.y, ballV.z*boost));
+			gGameState.rampBoostActive = false;
 		}
 
 		// Draw
