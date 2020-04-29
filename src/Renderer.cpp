@@ -63,7 +63,7 @@ void Renderer::Create(std::string name, int width, int height)
 void Renderer::Draw(GameObject& obj, Camera cam, std::vector<Light> lights, GLuint* shader)
 {
 	// Retrieve raw vertex & index buffers from the GameObject
-	float* verts = obj.Geometry().GetData();
+	float* verts = obj.Geometry().GetRenderData();
 	unsigned int* indices = obj.Geometry().GetIndices();
 
 	// If a different shader has been provided than from the last draw call, change to that.
@@ -79,15 +79,15 @@ void Renderer::Draw(GameObject& obj, Camera cam, std::vector<Light> lights, GLui
 	// Bind vertex array & buffer objects and feed with geometry data
 	glBindVertexArray(mVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, mVBO);
-	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 3 * sizeof(float), verts, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, obj.Geometry().GetCount() * 6 * sizeof(float), verts, GL_STATIC_DRAW);
 	// Vertex Position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 	// Vertex Normals (for lighting)
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (GLvoid*)(sizeof(float)*3));
 	glEnableVertexAttribArray(1);
 	// Unbind vertex buffer object
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// Get model, view & projection matrices
 	glm::mat4* mvp = getTransform(obj, cam);

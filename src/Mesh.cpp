@@ -254,6 +254,20 @@ float* Mesh::GetData()
 	return ret;
 }
 
+float* Mesh::GetRenderData()
+{
+	size_t count = GetCount();
+	float* ret = new float[count * 6];
+	for (size_t i = 0; i < count; i++)
+	{
+		float* vert = (IsIndexed() ? mAllVerts[i].GetData() : mVertices[i].GetData());
+		memcpy(ret + i * 6, vert, 6 * sizeof(float));
+		delete[] vert;
+	}
+
+	return ret;
+}
+
 std::vector<Vertex> Mesh::GetDataVector()
 {
 	return mVertices;

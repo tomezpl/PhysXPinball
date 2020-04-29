@@ -37,7 +37,10 @@ namespace Pinball
 		unsigned int* GetIndices();
 		std::vector<unsigned int> GetIndexVector();
 
+		// Returns vertex position data (3 floats per vertex, for PhysX)
 		float* GetData();
+		// Returns vertex position + normals (6 floats per vertex, for rendering)
+		float* GetRenderData();
 		std::vector<Vertex> GetDataVector();
 		size_t GetCount();
 		int GetMeshType();
