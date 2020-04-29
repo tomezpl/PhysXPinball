@@ -50,35 +50,10 @@ struct
 class MySimulationEventCallback : public physx::PxSimulationEventCallback
 {
 public:
-	//an example variable that will be checked in the main simulation loop
-	bool trigger;
-
-	MySimulationEventCallback() : trigger(false) {}
+	MySimulationEventCallback() {}
 
 	///Method called when the contact with the trigger object is detected.
-	virtual void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count)
-	{
-		//you can read the trigger information here
-		for (physx::PxU32 i = 0; i < count; i++)
-		{
-			//filter out contact with non-triggers
-			if (static_cast<Pinball::Middleware::UserData*>(pairs[i].otherActor->userData)->isTrigger)
-			{
-				//check if eNOTIFY_TOUCH_FOUND trigger
-				if (pairs[i].status & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
-				{
-					std::cerr << "onTrigger::eNOTIFY_TOUCH_FOUND" << std::endl;
-					trigger = true;
-				}
-				//check if eNOTIFY_TOUCH_LOST trigger
-				if (pairs[i].status & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
-				{
-					std::cerr << "onTrigger::eNOTIFY_TOUCH_LOST" << std::endl;
-					trigger = false;
-				}
-			}
-		}
-	}
+	virtual void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) { }
 
 	///Method called when the contact by the filter shader is detected.
 	virtual void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
@@ -115,8 +90,6 @@ public:
 
 			physx::PxContactStreamIterator iter(cp.contactPatches, cp.contactPoints, cp.getInternalFaceIndices(), cp.patchCount, cp.contactCount);
 
-			unsigned int flippedContacts = (cp.flags & physx::PxContactPairFlag::eINTERNAL_CONTACTS_ARE_FLIPPED);
-			unsigned int hasImpulses = (cp.flags & physx::PxContactPairFlag::eINTERNAL_HAS_IMPULSES);
 			unsigned int nbContacts = 0;
 
 			while (iter.hasNextPatch())
@@ -136,11 +109,6 @@ public:
 				}
 			}
 
-			//check eNOTIFY_TOUCH_FOUND
-			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
-			{
-				std::cerr << "onContact::eNOTIFY_TOUCH_FOUND" << std::endl;
-			}
 			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
 			{
 				if (rampFound && ballFound)
@@ -151,7 +119,6 @@ public:
 			//check eNOTIFY_TOUCH_LOST
 			if (pairs[i].events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
 			{
-				std::cerr << "onContact::eNOTIFY_TOUCH_LOST" << std::endl;
 				if (ballFound)
 				{
 					gGameState.spawnParticles = false;
