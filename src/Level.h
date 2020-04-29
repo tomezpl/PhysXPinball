@@ -28,6 +28,9 @@ namespace Pinball {
 			// + two bumpers put in bottom corners of the table to act as "last resort" (BumperBL and BumperBR)
 			*mBumperBL, *mBumperBR; // 13 14
 
+		// Flipper joints
+		physx::PxSphericalJoint* mFlipperJointL, *mFlipperJointR;
+
 		// Particles in this level
 		// Be careful when iterating over this vector, as dead particles will be deleted and marked with a nullptr, 
 		// but will still remain inbetween live particles in this vector until they are replaced by new ones.

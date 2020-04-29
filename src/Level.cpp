@@ -508,6 +508,38 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 
 		}
 	}
+
+	// Create flipper joints
+	if (mFlipperL != nullptr && mFlipperR != nullptr)
+	{
+		// Set flippers to have infinite mass and ignore gravity
+		((physx::PxRigidDynamic*)mFlipperL->GetPxActor())->setMass(0.f);
+		((physx::PxRigidDynamic*)mFlipperR->GetPxActor())->setMass(0.f);
+		((physx::PxRigidDynamic*)mFlipperL->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
+		((physx::PxRigidDynamic*)mFlipperR->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
+		mFlipperL->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+		mFlipperR->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+
+		// Create left flipper joint
+		physx::PxVec3 hingeLocation = mFlipperL->Transform().p;
+		mFlipperJointL = physx::PxSphericalJointCreate(PxGetPhysics(),
+			mHingeL->GetPxRigidActor(), physx::PxTransform(hingeLocation - mHingeL->Transform().p),
+			mFlipperL->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.f)));
+
+		// Set left flipper joint limit
+		mFlipperJointL->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
+		mFlipperJointL->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
+
+		// Create right flipper joint
+		hingeLocation = mFlipperR->Transform().p;
+		mFlipperJointR = physx::PxSphericalJointCreate(PxGetPhysics(),
+			mHingeR->GetPxRigidActor(), physx::PxTransform(hingeLocation - mHingeR->Transform().p),
+			mFlipperR->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
+
+		// Set right flipper joint limit
+		mFlipperJointR->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
+		mFlipperJointR->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
+	}
 }
 
 Level::~Level()
@@ -520,4 +552,12 @@ Level::~Level()
 	delete mHingeL;
 	delete mFlipperR;
 	delete mFlipperL;
+
+	delete mBumper1;
+	delete mBumper2;
+	delete mBumper3;
+	delete mBumperL;
+	delete mBumperR;
+	delete mBumperBL;
+	delete mBumperBR;
 }

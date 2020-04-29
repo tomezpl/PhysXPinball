@@ -70,7 +70,7 @@ public:
 			gGameState.spawnParticles = !floorFound; // don't generate spark particles on persistent contact with floor, there's too many of them
 			if (tableFound)
 			{
-				// Trigger game-over state as 
+				// Trigger game-over state if the ball is at the bottom of the table (not in the plunger area) and below minimal velocity.
 				if (ballPos.z >= gGameState.gameOverArea.z && std::fabs(ballPos.x - gGameState.plungerArea.x) > 0.5f && ballVelocity.magnitude() <= gGameState.gameOverVelocity)
 				{
 					gGameState.notifyLoss = true;
@@ -225,36 +225,6 @@ int main(int* argc, char** argv)
 	// Load the level from the Blender-exported file and point it to our PhysX scene.
 	gLevel = new Pinball::Level("Models/level_meshes.obj", "Models/level_origins.obj", cooking);
 	gLevel->SetScene(scene);
-
-	physx::PxSphericalJoint* flipperJointL = nullptr, *flipperJointR = nullptr;
-
-	// Set flippers to have infinite mass and ignore gravity
-	((physx::PxRigidDynamic*)gLevel->FlipperL()->GetPxActor())->setMass(0.f);
-	((physx::PxRigidDynamic*)gLevel->FlipperR()->GetPxActor())->setMass(0.f);
-	((physx::PxRigidDynamic*)gLevel->FlipperL()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
-	((physx::PxRigidDynamic*)gLevel->FlipperR()->GetPxActor())->setMassSpaceInertiaTensor(physx::PxVec3(0.f, 10.f, 0.f));
-	gLevel->FlipperL()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
-	gLevel->FlipperR()->GetPxActor()->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
-	
-	// Create left flipper joint
-	physx::PxVec3 hingeLocation = gLevel->FlipperL()->Transform().p;
-	flipperJointL = physx::PxSphericalJointCreate(*pxPhysics,
-		gLevel->HingeL()->GetPxRigidActor(), physx::PxTransform(hingeLocation - gLevel->HingeL()->Transform().p),
-		gLevel->FlipperL()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.f)));
-
-	// Set left flipper joint limit
-	flipperJointL->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
-	flipperJointL->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
-
-	// Create right flipper joint
-	hingeLocation = gLevel->FlipperR()->Transform().p;
-	flipperJointR = physx::PxSphericalJointCreate(*pxPhysics,
-		gLevel->HingeR()->GetPxRigidActor(), physx::PxTransform(hingeLocation - gLevel->HingeR()->Transform().p),
-		gLevel->FlipperR()->GetPxRigidActor(), physx::PxTransform(physx::PxVec3(0.0f)));
-
-	// Set right flipper joint limit
-	flipperJointR->setLimitCone(physx::PxJointLimitCone(physx::PxPi / 4, physx::PxPi / 4, 0.01f));
-	flipperJointR->setSphericalJointFlag(physx::PxSphericalJointFlag::eLIMIT_ENABLED, true);
 
 	scene->addActors(gLevel->AllActors(), gLevel->NbActors());
 
