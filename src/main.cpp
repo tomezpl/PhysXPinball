@@ -27,6 +27,9 @@ struct
 	// Coordinates of the plunger area at spawn, to avoid counting that as a loss
 	physx::PxVec3 plungerArea = physx::PxVec3();
 
+	// Coordinates of the game-over area (namely the Z-coordinate would be used to determine game-over state)
+	physx::PxVec3 gameOverArea = physx::PxVec3();
+
 	// Game-Over screen duration
 	const float gameOverDuration = 3.0f;
 	// Game-Over screen time so far
@@ -98,8 +101,7 @@ public:
 			gGameState.spawnParticles = !floorFound; // don't generate spark particles on persistent contact with floor, there's too many of them
 			if (tableFound)
 			{
-				//std::cout << "ballZ: " << ballPos.z << ", FlipperL.Z: " << gLevel->FlipperL()->Transform().p.z << std::endl;
-				if (ballPos.z > gLevel->FlipperL()->Transform().p.z && std::fabs(ballPos.x - gGameState.plungerArea.x) > 0.5f)
+				if (ballPos.z >= gGameState.gameOverArea.z && std::fabs(ballPos.x - gGameState.plungerArea.x) > 0.5f)
 				{
 					gGameState.notifyLoss = true;
 				}
@@ -363,6 +365,7 @@ int main(int* argc, char** argv)
 
 	// Store plunger area location (taken from the ball's initial position)
 	gGameState.plungerArea = gLevel->Ball()->Transform().p;
+	gGameState.gameOverArea = gGameState.plungerArea;
 
 	while (running)
 	{
@@ -407,7 +410,7 @@ int main(int* argc, char** argv)
 
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
 		{
-			launchStrength += 20.0f;
+			launchStrength += 40.0f;
 			buildUp = true;
 		}
 		if (glfwGetKey(gfx.Window(), GLFW_KEY_RIGHT_SHIFT) == GLFW_RELEASE && buildUp)
