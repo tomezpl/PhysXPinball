@@ -12,6 +12,7 @@
 #include "Renderer.h"
 #include "Util.h"
 
+// Level containing all GameObjects and particles
 Pinball::Level* gLevel = nullptr;
 
 // Game state. Kept as a global struct so it can be accessed from the simulation callback.
