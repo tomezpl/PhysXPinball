@@ -9,9 +9,11 @@
 // GLFW3, GLM and Assimp are added to this project via NuGet. They should be resolved automatically.
 // PhysX 3.4.2 is included via the PHYSX_SDK environment variable (Windows).
 //
+// Contents of the res/ folder and all PhysX DLLs should be placed next to the game's .exe, which the post-build commands should do automatically.
+//
 // # USAGE:
 // The game sets the ball in the plunger area. Holding down Right Shift key will build the ball's launch force,
-// releasing Right Shift key will launch the ball.
+// releasing it will launch the ball.
 //
 // Left and Right arrow keys are used to control the flippers.
 //
