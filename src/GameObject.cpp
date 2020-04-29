@@ -4,33 +4,18 @@
 
 using namespace Pinball;
 
-physx::PxMaterial* GameObject::_Mat = nullptr;
-bool GameObject::_CreatedMat = false;
-
 GameObject::GameObject()
 {
 	mActor = nullptr;
 	mName = "";
-
-	if (!_CreatedMat)
-	{
-		_Mat = PxGetPhysics().createMaterial(0.f, 0.f, 0.f);
-		_CreatedMat = true;
-	}
 }
 
-GameObject::GameObject(Mesh& geometry, GameObject::Type type, std::string name, GameObject::ColliderType colliderType)
+GameObject::GameObject(Mesh& geometry, GameObject::Type type, float sf, float df, float cor, std::string name, GameObject::ColliderType colliderType)
 {
 	mActor = nullptr;
 	mName = name;
 
-	if (!_CreatedMat)
-	{
-		_Mat = PxGetPhysics().createMaterial(0.f, 0.f, 0.f);
-		_CreatedMat = true;
-	}
-
-	Geometry(geometry, type, colliderType);
+	Geometry(geometry, type, sf, df, cor, colliderType);
 }
 
 Mesh GameObject::Geometry()
@@ -38,7 +23,7 @@ Mesh GameObject::Geometry()
 	return mMesh;
 }
 
-void GameObject::Geometry(Mesh& mesh, GameObject::Type type, GameObject::ColliderType colliderType)
+void GameObject::Geometry(Mesh& mesh, GameObject::Type type, float sf, float df, float cor, GameObject::ColliderType colliderType)
 {
 	mMesh = Mesh(mesh);
 
@@ -52,7 +37,7 @@ void GameObject::Geometry(Mesh& mesh, GameObject::Type type, GameObject::Collide
 		((physx::PxTriangleMeshGeometry*)mMesh.GetPxGeometry())->scale = scale;
 	}
 
-	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *_Mat, true) }; // TODO: won't this cause a memory leak on reinitialisation?
+	mShapes = { PxGetPhysics().createShape(*mMesh.GetPxGeometry(), *PxGetPhysics().createMaterial(sf, df, cor), true) }; // TODO: won't this cause a memory leak on reinitialisation?
 
 	if (mMesh.GetMeshType() == Mesh::MeshType::Plane)
 	{

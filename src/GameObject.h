@@ -43,13 +43,12 @@ namespace Pinball
 		physx::PxActor* mActor;
 		std::vector<physx::PxShape*> mShapes;
 
+		float mSf, mDf; // static & dynamic friction
+		float mCOR; // coefficient of restitution
+
 		std::string mName;
 
 		ObjectScale mObjScale;
-
-		// Default material
-		static physx::PxMaterial* _Mat;
-		static bool _CreatedMat;
 	protected:
 		void destroy();
 	public:
@@ -57,9 +56,9 @@ namespace Pinball
 		enum ColliderType { Trigger = 0, Collider, ColliderTrigger };
 
 		GameObject();
-		GameObject(Mesh& geometry, Type actorType = Type::Dynamic, std::string name = "", ColliderType colliderType = ColliderType::Collider);
+		GameObject(Mesh& geometry, Type actorType = Type::Dynamic, float staticFriction = 0.f, float kineticFriction = 0.f, float restitution = 0.f, std::string name = "", ColliderType colliderType = ColliderType::Collider);
 		Mesh Geometry();
-		void Geometry(Mesh& mesh, Type actorType = Type::Dynamic, ColliderType colliderType = ColliderType::Collider);
+		void Geometry(Mesh& mesh, Type actorType = Type::Dynamic, float staticFriction = 0.f, float kineticFriction = 0.f, float restitution = 0.f, ColliderType colliderType = ColliderType::Collider);
 		physx::PxActor* GetPxActor();
 		physx::PxRigidActor* GetPxRigidActor();
 		std::string Name();

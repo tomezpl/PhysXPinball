@@ -307,7 +307,26 @@ void Level::Load(std::string meshFilePath, std::string originFilePath, physx::Px
 
 		if (strContains("Ball FlipperL FlipperR HingeL HingeR Table Floor Ramp", meshName))
 		{
-			objToAssign->Geometry(meshes[i], objType);
+			// physic material properties
+			float sf = 0.0f, df = 0.0f, cor = 0.0f;
+			
+			// Set different properties for different types of objects
+			if(strContains("Ball", meshName))
+			{
+				df = 0.2f;
+				cor = 0.3f;
+			}
+			else if (strContains("Table", meshName) || strContains(meshName, "Hinge"))
+			{
+				cor = 1.0f;
+				df = 0.0f;
+			}
+			else if (strContains("Ramp", meshName))
+			{
+				cor = 0.0f;
+			}
+
+			objToAssign->Geometry(meshes[i], objType, sf, df, cor);
 			if (objType == GameObject::Dynamic)
 			{
 				((physx::PxRigidDynamic*)objToAssign->GetPxActor())->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, true);
